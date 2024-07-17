@@ -27,6 +27,7 @@ module cam_comp
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
+   use physics_types,             only: nstep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -146,7 +147,10 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       dtime_phys = 0.0_r8
+      nstep = 0
+      
       call mark_as_initialized('timestep_for_physics')
+      call mark_as_initialized('current_timestep_number')
 
       call init_pio_subsystem()
 
