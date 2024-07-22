@@ -604,6 +604,28 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         # end for
     # end if
 
+    #WARNING:  THIS SHOULD BE DELETED ONCE DEPENDENCIES ARE ENABLED!!!!!! - CHERYL AND JESSE
+    ########################################################################################
+    if do_gen_ccpp:
+        # Set CCPP physics "to_be_ccppized" path
+        atm_phys_tobe_dir = os.path.join(atm_phys_src_dir, "to_be_ccppized")
+
+        # Check that directory exists
+        if not os.path.isdir(atm_phys_tobe_dir):
+            #CAM-SIMA will likely not run without this, so raise an error
+            emsg = "ERROR: Unable to find CCPP physics 'to_be_ccppized' directory:\n"
+            emsg += f" {atm_phys_tobe_dir}\n Have you run 'checkout_externals'?"
+            raise CamAutoGenError(emsg)
+        # end if
+
+        # Copy all "to_be_ccppized" source files to the build directory
+        atm_phys_tobe_files = glob.glob(os.path.join(atm_phys_tobe_dir, "*.F90"))
+        for tobe_file in atm_phys_tobe_files:
+            shutil.copy(tobe_file, physics_blddir)
+        # end for
+    # end if
+    ###########################################################################################
+
     if do_gen_ccpp or do_gen_nl:
         # save build details in the build cache
         build_cache.update_ccpp(sdfs, scheme_files, host_files, xml_files,

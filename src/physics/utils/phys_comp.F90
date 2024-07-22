@@ -137,6 +137,7 @@ CONTAINS
       use physics_types,        only: allocate_physics_types_fields
       use cam_ccpp_cap,         only: cam_ccpp_physics_initialize
       use cam_ccpp_cap,         only: ccpp_physics_suite_part_list
+      use cam_constituents,     only: num_advected
 
       ! Local variables
       integer                    :: i_group
@@ -144,7 +145,7 @@ CONTAINS
       call cam_thermo_init(columns_on_task, pver, pverp)
 
       call allocate_physics_types_fields(columns_on_task, pver, pverp,        &
-           set_init_val_in=.true., reallocate_in=.false.)
+           num_advected, set_init_val_in=.true., reallocate_in=.false.)
       call cam_ccpp_physics_initialize(phys_suite_name)
       if (errcode /= 0) then
          call endrun('cam_ccpp_physics_initialize: '//trim(errmsg))
