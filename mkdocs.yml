@@ -2,6 +2,9 @@ site_name: CAM-SIMA
 plugins:
   - search
 theme:
+  icon:
+    admonition:
+      info: material/arrow-up-down-bold
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -24,3 +27,9 @@ theme:
         icon: material/brightness-4
         name: Switch to system preference
   name: material
+
+markdown_extensions:
+  - def_list
+  - tables
+  - pymdownx.tasklist:
+      custom_checkbox: true
