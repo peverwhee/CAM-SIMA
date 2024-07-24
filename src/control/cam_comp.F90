@@ -16,7 +16,7 @@ module cam_comp
 
    use spmd_utils,                only: masterproc, mpicom
    use cam_control_mod,           only: cam_ctrl_init, cam_ctrl_set_orbit
-   use cam_control_mod,           only: cam_ctrl_set_physics_type
+   use cam_physics_control,       only: cam_ctrl_set_physics_type
    use cam_control_mod,           only: caseid, ctitle
    use runtime_opts,              only: read_namelist
    use runtime_obj,               only: cam_runtime_opts
@@ -25,8 +25,7 @@ module cam_comp
    use time_manager,              only: is_first_step, is_first_restart_step
 
    use camsrfexch,                only: cam_out_t, cam_in_t
-   use physics_types,             only: phys_state, phys_tend
-   use physics_types,             only: dtime_phys
+   use physics_types,             only: phys_state, phys_tend, dtime_phys
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -66,7 +65,8 @@ CONTAINS
 
    subroutine cam_init(caseid, ctitle, model_doi_url,                         &
         initial_run_in, restart_run_in, branch_run_in,                        &
-        calendar, brnch_retain_casename, aqua_planet,                         &
+        post_assim_in, calendar,                                              &
+        brnch_retain_casename, aqua_planet,                                   &
         single_column, scmlat, scmlon,                                        &
         eccen, obliqr, lambm0, mvelpp,                                        &
         perpetual_run, perpetual_ymd,                                         &
@@ -86,7 +86,7 @@ CONTAINS
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
       use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-!      use cam_history,          only: hist_init_files
+      use cam_history,          only: history_init_files
 !      use history_scam,         only: scm_intht
       use cam_pio_utils,        only: init_pio_subsystem
       use cam_instance,         only: inst_suffix
@@ -105,6 +105,7 @@ CONTAINS
       logical,           intent(in) :: initial_run_in        ! is inital run?
       logical,           intent(in) :: restart_run_in        ! is restart run?
       logical,           intent(in) :: branch_run_in         ! is branch run?
+      logical,           intent(in) :: post_assim_in         ! true => resume mode
       character(len=cs), intent(in) :: calendar              ! Calendar type
       ! brnch_retain_casename is a flag to allow a branch to use the same
       ! caseid as the run being branched from.
@@ -155,6 +156,7 @@ CONTAINS
            initial_run_in=initial_run_in,                                     &
            restart_run_in=restart_run_in,                                     &
            branch_run_in=branch_run_in,                                       &
+           post_assim_in=post_assim_in,                                       &
            aqua_planet_in=aqua_planet,                                        &
            brnch_retain_casename_in=brnch_retain_casename)
 
@@ -232,9 +234,7 @@ CONTAINS
       ! if (single_column) then
       !    call scm_intht()
       ! end if
-!!XXgoldyXX: v need to import this
-!      call hist_init_files(model_doi_url, caseid, ctitle)
-!!XXgoldyXX: ^ need to import this
+      call history_init_files(model_doi_url, caseid, ctitle)
 
    end subroutine cam_init
 
@@ -249,7 +249,17 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       use phys_comp, only: phys_timestep_init
+      use stepon,    only: stepon_timestep_init
 
+      !----------------------------------------------------------
+      ! First phase of dynamics (at least couple from dynamics to physics)
+      ! Return time-step for physics from dynamics.
+      !----------------------------------------------------------
+      call t_barrierf('sync_stepon_timestep_init', mpicom)
+      call t_startf('stepon_timestep_init')
+      call stepon_timestep_init(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
+           dyn_in, dyn_out)
+      call t_stopf('stepon_timestep_init')
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_INIT Call the Physics package
@@ -271,21 +281,10 @@ CONTAINS
       !-----------------------------------------------------------------------
 
       use phys_comp, only: phys_run1
-      use stepon,    only: stepon_run1
 !      use ionosphere_interface, only: ionosphere_run1
 
       type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
       type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
-
-      !----------------------------------------------------------
-      ! First phase of dynamics (at least couple from dynamics to physics)
-      ! Return time-step for physics from dynamics.
-      !----------------------------------------------------------
-      call t_barrierf('sync_stepon_run1', mpicom)
-      call t_startf('stepon_run1')
-      call stepon_run1(dtime_phys, cam_runtime_opts, phys_state, phys_tend,   &
-           dyn_in, dyn_out)
-      call t_stopf('stepon_run1')
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed
@@ -394,10 +393,8 @@ CONTAINS
       !           file output.
       !
       !-----------------------------------------------------------------------
-!      use cam_history,  only: wshist, wrapup
 !      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
-      use time_manager, only: is_last_step
 
       type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
       type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
@@ -407,18 +404,6 @@ CONTAINS
       integer,         intent(in), optional :: mon_spec ! Simulation month
       integer,         intent(in), optional :: day_spec ! Simulation day
       integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
-
-      !----------------------------------------------------------
-      ! History and restart logic: Write and/or dispose history
-      !                            tapes if required
-      !----------------------------------------------------------
-      !
-!!XXgoldyXX: v need to import this
-!      call t_barrierf('sync_wshist', mpicom)
-!      call t_startf('wshist')
-!      call wshist()
-!      call t_stopf('wshist')
-!!XXgoldyXX: ^ need to import this
 
       !
       ! Write restart files
@@ -439,34 +424,39 @@ CONTAINS
          call t_stopf('cam_write_restart')
       end if
 
-!!XXgoldyXX: v need to import this
-!      call t_startf ('cam_run4_wrapup')
-!      call wrapup(rstwr, nlend)
-!      call t_stopf  ('cam_run4_wrapup')
-!!XXgoldyXX: ^ need to import this
-
-      call shr_sys_flush(iulog)
-
    end subroutine cam_run4
 
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final()
+   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp, only: phys_timestep_final
+      use phys_comp,    only: phys_timestep_final
+      use cam_history,  only: history_write_files
+      use cam_history,  only: history_wrap_up
+      logical, intent(in)  :: rstwr    ! write restart file
+      logical, intent(in)  :: nlend    ! this is final timestep
+      !Flag for whether a snapshot (ncdata) check should be run or not
+      ! - flag is true if this is not the first or last step
+      logical, intent(in)  :: do_ncdata_check
 
+      if (do_ncdata_check .or. get_nstep() == 0) then
+         call history_write_files()
+         ! peverwhee - todo: handle restarts
+         call history_wrap_up(rstwr, nlend)
+      end if
       !
       !----------------------------------------------------------
       ! PHYS_TIMESTEP_FINAL Call the Physics package
       !----------------------------------------------------------
       !
-      call phys_timestep_final()
+      call phys_timestep_final(do_ncdata_check)
+      call shr_sys_flush(iulog)
 
    end subroutine cam_timestep_final
 
@@ -607,8 +597,8 @@ CONTAINS
 
       !Combine host and physics constituents into a single
       !constituents object:
-      call cam_ccpp_register_constituents(cam_runtime_opts%suite_as_list(),             &
-           host_constituents, dynamic_constituents, errcode=errflg, errmsg=errmsg)
+      call cam_ccpp_register_constituents(             &
+           host_constituents, errcode=errflg, errmsg=errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)

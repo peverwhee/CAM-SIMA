@@ -13,7 +13,7 @@ src/physics/clubb
 src/physics/cosp2/src
 src/physics/ncar_ccpp
 src/physics/silhs
-src/utils/history_output
+src/history/buffers
 
 # Ignore compiled python
 *.pyc
@@ -23,6 +23,9 @@ buildnmlc
 test/include/*.mod
 test/include/*.o
 test/unit/tmp
+test/system/*.log
+test/system/cime-tests.o*
+test_driver_*.sh
 
 # Ignore editor temporaries and backups
 *.swp

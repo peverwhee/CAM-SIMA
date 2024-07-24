@@ -14,6 +14,7 @@
   <metadata_file>$SRCROOT/src/data/cam_thermo.meta</metadata_file>
   <metadata_file>$SRCROOT/src/data/ref_pres.meta</metadata_file>
   <metadata_file>$SRCROOT/src/dynamics/utils/vert_coord.meta</metadata_file>
+  <metadata_file>$SRCROOT/src/dynamics/utils/hycoef.meta</metadata_file>
   <!-- Variables registered to physics_types -->
   <file name="physics_types" type="module">
     <use module="ccpp_kinds" reference="kind_phys"/>
@@ -296,6 +297,10 @@
       <data>inverse_exner_function_wrt_surface_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
+      <data>vertically_integrated_energies_of_initial_state_in_cam</data>
+      <data>vertically_integrated_energies_of_current_state_in_cam</data>
+      <data>vertically_integrated_total_water_of_initial_state</data>
+      <data>vertically_integrated_total_water_of_current_state</data>
     </ddt>
     <ddt type="physics_tend">
       <data>tendency_of_air_temperature_due_to_model_physics</data>
@@ -313,11 +318,17 @@
               phys_timestep_init_zero="true">
       <long_name>Total tendency from physics suite</long_name>
     </variable>
-    <!-- Physics timestep -->
+    <!-- Timestep variables -->
     <variable local_name="dtime_phys"
               standard_name="timestep_for_physics"
               units="s" type="real" kind="kind_phys">
       <long_name>timestep for physics</long_name>
+    </variable>
+    <variable local_name="nstep"
+              standard_name="current_timestep_number"
+              units="count" type="integer">
+      <long_name>current timestep number</long_name>
+      <initial_value>0</initial_value>
     </variable>
     <!-- Error handling variables -->
     <variable local_name="errcode"
@@ -379,24 +390,28 @@
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Water vapor mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>Q cnst_Q</ic_file_input_names>
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
     </variable>
     <variable local_name="cldice"
               standard_name="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud ice mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>rain mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
     </variable>
 
