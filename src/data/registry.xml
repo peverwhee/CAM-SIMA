@@ -484,10 +484,6 @@
               standard_name="index_of_last_column_of_gathered_deep_convection_arrays"
               units="index" type="integer" >
     </variable>
-    <variable local_name="nstep"
-              standard_name="current_timestep_number"
-              units="count" type="integer" >
-    </variable>
     <variable local_name="doconvtran"
               standard_name="flag_for_tracer_transport_by_zhang_mcfarlane_deep_scheme"
               units="flag" type="logical"
