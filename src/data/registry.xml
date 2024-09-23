@@ -451,12 +451,6 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>ICWMRDP pbuf_ICWMRDP</ic_file_input_names>
     </variable>
-    <variable local_name="org"
-              standard_name="zhang_mcfarlane_organization_parameter_of_deep_convection"
-              units="1" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-    </variable>
     <variable local_name="cldfrc"
               standard_name="cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
@@ -472,7 +466,8 @@
     </variable>
     <variable local_name="il1g"
               standard_name="index_of_first_column_of_gathered_deep_convection_arrays"
-              units="index" type="integer" >
+              units="index" type="integer"
+              access="protected" >
       <initial_value>1</initial_value>
     </variable>
     <variable local_name="dpdry"
@@ -480,10 +475,6 @@
               units="hPa" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
-    </variable>
-    <variable local_name="il2g"
-              standard_name="index_of_last_column_of_gathered_deep_convection_arrays"
-              units="index" type="integer" >
     </variable>
     <variable local_name="doconvtran"
               standard_name="flag_for_tracer_transport_by_zhang_mcfarlane_deep_scheme"
