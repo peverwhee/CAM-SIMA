@@ -456,6 +456,7 @@ CONTAINS
       use mpi,            only: mpi_maxloc, mpi_sum, mpi_status_size
       use mpi,            only: mpi_2double_precision, mpi_integer
       use vert_coord,     only: pver, pverp
+      use cam_logfile, only: iulog
 
       !Max possible length of variable name in file:
       use phys_vars_init_check, only: std_name_len
