@@ -202,40 +202,24 @@
       <dimensions>horizontal_dimension vertical_interface_dimension</dimensions>
       <ic_file_input_names>zi state_zi</ic_file_input_names>
     </variable>
-    <variable local_name="te_ini_phys"
-              standard_name="vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula"
+    <variable local_name="te_ini"
+              standard_name="vertically_integrated_energies_of_initial_state_in_cam"
               units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_ini_phys state_te_ini_phys</ic_file_input_names>
+      <ic_file_input_names>te_ini state_te_ini</ic_file_input_names>
     </variable>
-    <variable local_name="te_cur_phys"
-              standard_name="vertically_integrated_total_energy_of_current_state_using_physics_energy_formula"
+    <variable local_name="te_cur"
+              standard_name="vertically_integrated_energies_of_current_state_in_cam"
               units="J m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
       <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_cur_phys state_te_cur_phys</ic_file_input_names>
-    </variable>
-    <variable local_name="te_ini_dyn"
-              standard_name="vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula"
-              units="J m-2"
-              type="real" kind="kind_phys"
-              allocatable="pointer">
-      <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_ini_dyn state_te_ini_dyn</ic_file_input_names>
-    </variable>
-    <variable local_name="te_cur_dyn"
-              standard_name="vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula"
-              units="J m-2"
-              type="real" kind="kind_phys"
-              allocatable="pointer">
-      <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>te_cur_dyn state_te_cur_dyn</ic_file_input_names>
+      <ic_file_input_names>te_cur state_te_cur</ic_file_input_names>
     </variable>
     <variable local_name="tw_ini"
-              standard_name="vertically_integrated_water_vapor_and_condensed_water_of_initial_state"
+              standard_name="vertically_integrated_total_water_of_initial_state"
               units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -243,7 +227,7 @@
       <ic_file_input_names>tw_ini state_tw_ini</ic_file_input_names>
     </variable>
     <variable local_name="tw_cur"
-              standard_name="vertically_integrated_water_vapor_and_condensed_water_of_current_state"
+              standard_name="vertically_integrated_total_water_of_current_state"
               units="kg m-2"
               type="real" kind="kind_phys"
               allocatable="pointer">
@@ -313,12 +297,10 @@
       <data>inverse_exner_function_wrt_surface_pressure</data>
       <data>frontogenesis_function</data>
       <data>frontogenesis_angle</data>
-      <data>vertically_integrated_total_energy_of_initial_state_using_physics_energy_formula</data>
-      <data>vertically_integrated_total_energy_of_current_state_using_physics_energy_formula</data>
-      <data>vertically_integrated_total_energy_of_initial_state_using_dycore_energy_formula</data>
-      <data>vertically_integrated_total_energy_of_current_state_using_dycore_energy_formula</data>
-      <data>vertically_integrated_water_vapor_and_condensed_water_of_initial_state</data>
-      <data>vertically_integrated_water_vapor_and_condensed_water_of_current_state</data>
+      <data>vertically_integrated_energies_of_initial_state_in_cam</data>
+      <data>vertically_integrated_energies_of_current_state_in_cam</data>
+      <data>vertically_integrated_total_water_of_initial_state</data>
+      <data>vertically_integrated_total_water_of_current_state</data>
     </ddt>
     <ddt type="physics_tend">
       <data>tendency_of_air_temperature_due_to_model_physics</data>
@@ -408,25 +390,119 @@
               standard_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Water vapor mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>Q cnst_Q</ic_file_input_names>
     </variable>
     <variable local_name="cldliq"
               standard_name="cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud water mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDLIQ cnst_CLDLIQ</ic_file_input_names>
     </variable>
     <variable local_name="cldice"
               standard_name="cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>Cloud ice mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>CLDICE cnst_CLDICE</ic_file_input_names>
     </variable>
     <variable local_name="rainqm"
               standard_name="rain_mixing_ratio_wrt_moist_air_and_condensed_water"
               units="kg kg-1" type="real" constituent="true">
       <long_name>rain mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>RAINQM cnst_RAINQM</ic_file_input_names>
+    </variable>
+
+    <variable local_name="snowqm"
+              standard_name="snow_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>snow mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>SNOWQM cnst_SNOWQM</ic_file_input_names>
+    </variable>
+    <variable local_name="grauqm"
+              standard_name="graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water"
+              units="kg kg-1" type="real" constituent="true">
+      <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
+      <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
+    </variable>
+
+    <!-- cam_in Variables -->
+    <variable local_name="landfrac"
+              standard_name="land_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
+    </variable>
+
+    <!-- Zhang McFarlane (ZM) Variables -->
+    <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
+    <variable local_name="pblh"
+              standard_name="atmosphere_boundary_layer_thickness"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>pblh pbuf_pblh</ic_file_input_names>
+    </variable>
+    <variable local_name="delt"
+              standard_name="half_timestep_for_physics"
+              units="s" type="real" kind="kind_phys">
+    </variable>
+    <variable local_name="tpert"
+              standard_name="convective_temperature_perturbation_due_to_pbl_eddies"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
+    </variable>
+    <variable local_name="ql"
+              standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
+              units="kg kg-1" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>ICWMRDP pbuf_ICWMRDP</ic_file_input_names>
+    </variable>
+    <variable local_name="cldfrc"
+              standard_name="cloud_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <ic_file_input_names>CLD pbuf_CLD</ic_file_input_names>
+    </variable>
+    <variable local_name="domomtran"
+              standard_name="flag_for_momentum_transport_by_zhang_mcfarlane_deep_convection_scheme"
+              units="flag" type="logical"
+              access="protected" >
+      <initial_value>.true.</initial_value>
+    </variable>
+    <variable local_name="il1g"
+              standard_name="index_of_first_column_of_gathered_deep_convection_arrays"
+              units="index" type="integer"
+              access="protected" >
+      <initial_value>1</initial_value>
+    </variable>
+    <variable local_name="dpdry"
+              standard_name="air_pressure_thickness_of_dry_air_for_deep_convection_for_gathered_convective_columns"
+              units="hPa" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+    </variable>
+    <variable local_name="doconvtran"
+              standard_name="flag_for_tracer_transport_by_zhang_mcfarlane_deep_scheme"
+              units="flag" type="logical"
+              allocatable="allocatable"
+              access="protected" >
+      <dimensions>number_of_ccpp_constituents</dimensions>
+    </variable>
+    <variable local_name="fracis"
+              standard_name="fraction_of_water_insoluble_convectively_transported_species"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable"
+              access="protected" >
+      <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
+      <initial_value>0</initial_value>
     </variable>
   </file>
 </registry>

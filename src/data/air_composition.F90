@@ -328,6 +328,9 @@ CONTAINS
          case('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water')
             call air_species_info('cloud_liquid_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
                                   ix, mw)
+            if (masterproc) then
+               write(iulog,*) 'peverwhee - setting cldliq to water species'
+            end if
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpliq
             thermodynamic_active_species_cv (icnst) = cpliq
@@ -346,8 +349,8 @@ CONTAINS
             !
             ! CLDICE
             !
-         case('cloud_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water')
-            call air_species_info('cloud_ice_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
+         case('cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water')
+            call air_species_info('cloud_ice_mixing_ratio_wrt_moist_air_and_condensed_water', &
                                   ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
             thermodynamic_active_species_cp (icnst) = cpice
@@ -408,7 +411,7 @@ CONTAINS
             !
             ! GRAUQM
             !
-         case('graupel_water_mixing_ratio_wrt_moist_air_and_conedensed_water')
+         case('graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water')
             call air_species_info('graupel_water_mixing_ratio_wrt_moist_air_and_condensed_water', &
                                   ix, mw)
             thermodynamic_active_species_idx(icnst) = ix
