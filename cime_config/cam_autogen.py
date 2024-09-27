@@ -392,7 +392,7 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
                                    gen_fort_indent, source_mods_dir, atm_root,
                                    logger=_LOGGER, schema_paths=data_search,
                                    error_on_no_validate=True)
-            retcode, reg_file_list, ic_names = retvals
+            retcode, reg_file_list, ic_names, registry_constituents = retvals
             # Raise error if gen_registry failed:
             if retcode != 0:
                 emsg = "ERROR:Unable to generate CAM data structures from {}, err = {}"
@@ -406,14 +406,15 @@ def generate_registry(data_search, build_cache, atm_root, bldroot,
         # Save build details in the build cache
         reg_file_paths = [x.file_path for x in reg_file_list if x.file_path]
         build_cache.update_registry(gen_reg_file, registry_files, dycore,
-                                    reg_file_paths, ic_names)
+                                    reg_file_paths, ic_names, registry_constituents)
     else:
         # If we did not run the registry generator, retrieve info from cache
         reg_file_paths = build_cache.reg_file_list()
         ic_names = build_cache.ic_names()
+        registry_constituents = build_cache.constituents()
     # End if
 
-    return genreg_dir, do_gen_registry, reg_file_paths, ic_names
+    return genreg_dir, do_gen_registry, reg_file_paths, ic_names, registry_constituents
 
 ###############################################################################
 def generate_physics_suites(build_cache, preproc_defs, host_name,
@@ -604,6 +605,28 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         # end for
     # end if
 
+    #WARNING:  THIS SHOULD BE DELETED ONCE DEPENDENCIES ARE ENABLED!!!!!! - CHERYL AND JESSE
+    ########################################################################################
+    if do_gen_ccpp:
+        # Set CCPP physics "to_be_ccppized" path
+        atm_phys_tobe_dir = os.path.join(atm_phys_src_dir, "to_be_ccppized")
+
+        # Check that directory exists
+        if not os.path.isdir(atm_phys_tobe_dir):
+            #CAM-SIMA will likely not run without this, so raise an error
+            emsg = "ERROR: Unable to find CCPP physics 'to_be_ccppized' directory:\n"
+            emsg += f" {atm_phys_tobe_dir}\n Have you run 'checkout_externals'?"
+            raise CamAutoGenError(emsg)
+        # end if
+
+        # Copy all "to_be_ccppized" source files to the build directory
+        atm_phys_tobe_files = glob.glob(os.path.join(atm_phys_tobe_dir, "*.F90"))
+        for tobe_file in atm_phys_tobe_files:
+            shutil.copy(tobe_file, physics_blddir)
+        # end for
+    # end if
+    ###########################################################################################
+
     if do_gen_ccpp or do_gen_nl:
         # save build details in the build cache
         build_cache.update_ccpp(sdfs, scheme_files, host_files, xml_files,
@@ -629,7 +652,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
                            source_mods_dir, gen_fort_indent,
-                           cap_database, ic_names):
+                           cap_database, ic_names, registry_constituents):
 ###############################################################################
     """
     Generate the host model initialization source code files
@@ -667,8 +690,8 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
         #   within write_init_files (so that write_init_files can be the place
         #   where the source include files are stored).
         source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_init_files(cap_database, ic_names, init_dir,
-                                  _find_file, source_paths,
+        retmsg = write_init_files(cap_database, ic_names, registry_constituents,
+                                  init_dir, _find_file, source_paths,
                                   gen_fort_indent, _LOGGER)
 
         #Check that script ran properly:
