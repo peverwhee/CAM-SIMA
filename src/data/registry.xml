@@ -426,6 +426,7 @@
               units="kg kg-1" type="real" constituent="true">
       <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
+    </variable>
 
     <!-- cam_in Variables -->
     <variable local_name="landfrac"
