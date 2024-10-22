@@ -6,10 +6,10 @@
 	fxDONOTUSEurl = https://github.com/NCAR/ccpp-framework
 [submodule "history"]
 	path = src/history/buffers
-	url = https://github.com/peverwhee/history_output
-	fxtag         = b1da47af645dea3b14c19efc0716dc6ce6c28d22
+	url = https://github.com/ESMCI/history_output
+	fxtag         = history01_00
 	fxrequired    = AlwaysRequired
-	fxDONOTUSEurl = https://github.com/peverwhee/history_output
+	fxDONOTUSEurl = https://github.com/ESMCI/history_output
 [submodule "mpas"]
         path          = src/dynamics/mpas/dycore
         url           = https://github.com/MPAS-Dev/MPAS-Model.git
