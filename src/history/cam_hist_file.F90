@@ -1392,7 +1392,7 @@ CONTAINS
       integer :: nscur             ! seconds component of current time
       real(r8) :: time             ! current (or midpoint) time
       real(r8) :: time_interval(2) ! time interval boundaries
-      integer :: num_samples, ierr
+      integer :: ierr
       integer :: split_file_index, field_idx
       integer :: start, count1
       integer :: startc(2)          ! start values required by nf_put_vara (character)
@@ -1411,11 +1411,12 @@ CONTAINS
       call set_date_from_time_float((time_interval(1) + time_interval(2)) / 2._r8, &
                                     yr_mid, mon_mid, day_mid, ncsec(accumulated_file_index))
       ncdate(accumulated_file_index) = yr_mid*10000 + mon_mid*100 + day_mid
-      start = mod(num_samples, this%max_frames) + 1
-      count1 = 1
+
       ! Increment samples
       this%num_samples = this%num_samples + 1
-      num_samples = this%num_samples
+
+      start = mod(this%num_samples, this%max_frames) + 1
+      count1 = 1
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
       is_satfile = (this%hfile_type == hfile_type_sat_track)
@@ -1436,9 +1437,9 @@ CONTAINS
          end if
          if (masterproc) then
             if (split_file_index == instantaneous_file_index) then
-               write(iulog,200) num_samples,'instantaneous',trim(this%volume),yr,mon,day,ncsec(split_file_index)
+               write(iulog,200) this%num_samples,'instantaneous',trim(this%volume),yr,mon,day,ncsec(split_file_index)
             else
-               write(iulog,200) num_samples,'accumulated',trim(this%volume),yr_mid,mon_mid,day_mid,ncsec(split_file_index)
+               write(iulog,200) this%num_samples,'accumulated',trim(this%volume),yr_mid,mon_mid,day_mid,ncsec(split_file_index)
             end if
 200         format('config_write_*: writing time sample ',i3,' to ', a, ' h-file ', &
                  a,' DATE=',i4.4,'/',i2.2,'/',i2.2,' NCSEC=',i6)
