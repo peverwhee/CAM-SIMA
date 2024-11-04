@@ -138,10 +138,6 @@ CONTAINS
       ! Local variables
       integer                    :: i_group
 
-      call cam_ccpp_physics_register(phys_suite_name)
-      if (errcode /= 0) then
-         call endrun('cam_ccpp_physics_register: '//trim(errmsg))
-      end if
       call ccpp_physics_suite_part_list(phys_suite_name, suite_parts,         &
            errmsg, errcode)
       if (errcode /= 0) then
@@ -156,6 +152,11 @@ CONTAINS
             call endrun(errmsg)
          end if
       end do
+      ! Call CCPP register phase
+      call cam_ccpp_physics_register(phys_suite_name)
+      if (errcode /= 0) then
+         call endrun('cam_ccpp_physics_register: '//trim(errmsg))
+      end if
 
    end subroutine phys_register
 
