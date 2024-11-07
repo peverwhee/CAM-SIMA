@@ -444,7 +444,8 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     suite_search         = [source_mods_dir, atm_suites_path, atm_test_suites_path]
     # Find all scheme metadata files, organized by scheme name
     atm_schemes_path = os.path.join(atm_phys_top_dir, "schemes")
-    source_search    = [source_mods_dir, atm_schemes_path]
+    atm_test_schemes_path = os.path.join(atm_phys_top_dir, "test", "test_schemes")
+    source_search    = [source_mods_dir, atm_schemes_path, atm_test_schemes_path]
     all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
 
     # Find the SDFs specified for this model build
