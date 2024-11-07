@@ -573,6 +573,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
         #Write line to file:
         outfile.write(log_arr_str, 2)
     # end for
+    arr_suffix = ', &'
     for var_num, var_name in enumerate(registry_constituents):
         # If at the end of the list, then update suffix:
         if var_num == num_input_vars-len(host_vars)-1:
@@ -612,6 +613,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
         #Write line to file:
         outfile.write(log_arr_str, 2)
     # end for
+    arr_suffix = ', &'
     for var_num, varname in enumerate(registry_constituents):
         #If at the end of the list, then update suffix:
         if var_num == num_input_vars-len(host_vars)-1:
@@ -938,6 +940,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.comment("Fields needed for getting default data value for constituents", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
     outfile.write("real(kind=kind_phys)                       :: constituent_default_value", 2)
+    outfile.write("real(kind=kind_phys)                       :: constituent_min_value", 2)
     outfile.write("integer                                    :: constituent_errflg", 2)
     outfile.write("character(len=512)                         :: constituent_errmsg", 2)
     outfile.write("logical                                    :: constituent_has_default", 2)
@@ -1122,7 +1125,9 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' initialized to default value: ', constituent_default_value", 6)
     outfile.write("end if", 5)
     outfile.write("else", 4)
-    outfile.write("field_data_ptr(:,:,constituent_idx) = 0._kind_phys", 5)
+    outfile.comment("Intialize to constituent's configured minimum value", 5)
+    outfile.write("call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)", 5)
+    outfile.write("field_data_ptr(:,:,constituent_idx) = constituent_min_value", 5)
     outfile.write("if (masterproc) then", 5)
     outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'", 6)
     outfile.write("end if", 5)
