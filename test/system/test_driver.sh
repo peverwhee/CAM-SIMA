@@ -254,11 +254,11 @@ case $hostname in
 
     mach_workspace="/glade/derecho/scratch"
 
-####    # Check for CESM baseline directory
-####    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit 3
-####    fi
+    # Check for CESM baseline directory
+    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit 3
+    fi
 
 #-------------------------------------------
 
@@ -306,11 +306,11 @@ EOF
 
     mach_workspace="/scratch/cluster"
 
-####    # Check for CESM baseline directory
-####    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit
-####    fi
+    # Check for CESM baseline directory
+    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit
+    fi
 
 #-------------------------------------------
 
@@ -363,11 +363,11 @@ EOF
 
     mach_workspace="/scratch/cluster"
 
-####    # Check for CESM baseline directory
-####    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit
-####    fi
+    # Check for CESM baseline directory
+    if  [ -n "{$BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit
+    fi
 
 #-------------------------------------------
 
@@ -421,11 +421,11 @@ EOF
 
     mach_workspace="/glade/scratch"
 
-####    # Check for CESM baseline directory
-####    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
-####        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
-####        exit
-####    fi
+    # Check for CESM baseline directory
+    if [ -n "${BL_TESTDIR}" ] && [ ! -d "${BL_TESTDIR}" ]; then
+        echo "CESM_BASELINE ${BL_TESTDIR} not found.  Check BL_TESTDIR for correct tag name."
+        exit
+    fi
 
 #-------------------------------------------
 
@@ -475,7 +475,7 @@ if [ "${cesm_test_suite}" != "none" -a -n "${cesm_test_mach}" ]; then
 
 
   for cesm_test in ${cesm_test_suite}; do
-    testargs="--xml-category ${cesm_test} --xml-machine ${cesm_test_mach} --retry 2 --no-run"
+    testargs="--xml-category ${cesm_test} --xml-machine ${cesm_test_mach} --retry 2"
 
     if [ -n "${use_existing}" ]; then
       test_id="${use_existing}"
