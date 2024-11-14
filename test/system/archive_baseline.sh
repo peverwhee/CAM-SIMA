@@ -10,8 +10,8 @@ NAME
 
 SYNOPSIS
 
-	archive_baseline.sh TAGNAME
-	  [-help] [--no-symlink]
+	archive_baseline.sh TAGNAME [--no-symlink]
+	  [--help]
 
 
 ENVIROMENT VARIABLES
