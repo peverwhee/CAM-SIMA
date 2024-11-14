@@ -16,17 +16,19 @@ module cam_comp
 
    use spmd_utils,                only: masterproc, mpicom
    use cam_control_mod,           only: cam_ctrl_init, cam_ctrl_set_orbit
-   use cam_control_mod,           only: cam_ctrl_set_physics_type
+   use cam_physics_control,       only: cam_ctrl_set_physics_type
    use cam_control_mod,           only: caseid, ctitle
    use runtime_opts,              only: read_namelist
    use runtime_obj,               only: cam_runtime_opts
    use time_manager,              only: timemgr_init, get_step_size
    use time_manager,              only: get_nstep
    use time_manager,              only: is_first_step, is_first_restart_step
+   use time_manager,              only: get_curr_calday
 
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
+   use physics_types,             only: calday
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -84,10 +86,11 @@ CONTAINS
       use cam_initfiles,        only: cam_initfiles_open
       use dyn_grid,             only: model_grid_init
       use phys_comp,            only: phys_init
+      use phys_comp,            only: phys_register
       use dyn_comp,             only: dyn_init
 !      use cam_restart,          only: cam_read_restart
       use camsrfexch,           only: hub2atm_alloc, atm2hub_alloc
-!      use cam_history,          only: hist_init_files
+      use cam_history,          only: history_init_files
 !      use history_scam,         only: scm_intht
       use cam_pio_utils,        only: init_pio_subsystem
       use cam_instance,         only: inst_suffix
@@ -98,6 +101,7 @@ CONTAINS
       use physics_grid,         only: columns_on_task
       use vert_coord,           only: pver
       use phys_vars_init_check, only: mark_as_initialized
+      use tropopause_climo_read, only: tropopause_climo_read_file
 
       ! Arguments
       character(len=cl), intent(in) :: caseid                ! case ID
@@ -163,10 +167,15 @@ CONTAINS
 
       call cam_ctrl_set_orbit(eccen, obliqr, lambm0, mvelpp)
 
+
       call timemgr_init(                                                      &
            dtime, calendar, start_ymd, start_tod, ref_ymd,                    &
            ref_tod, stop_ymd, stop_tod, curr_ymd, curr_tod,                   &
            perpetual_run, perpetual_ymd, initial_run_in)
+
+      ! Get current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
+      call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -177,6 +186,10 @@ CONTAINS
 
       ! Open initial or restart file, and topo file if specified.
       call cam_initfiles_open()
+
+      ! Call CCPP physics register phase (must happen before
+      !   cam_register_constituents)
+      call phys_register()
 
       ! Initialize constituent information
       !    This will set the total number of constituents and the
@@ -224,6 +237,9 @@ CONTAINS
 !!XXgoldyXX: ^ need to import this
       end if
 
+      ! Read tropopause climatology
+      call tropopause_climo_read_file()
+
       call phys_init()
 
 !!XXgoldyXX: v need to import this
@@ -235,9 +251,7 @@ CONTAINS
       ! if (single_column) then
       !    call scm_intht()
       ! end if
-!!XXgoldyXX: v need to import this
-!      call hist_init_files(model_doi_url, caseid, ctitle)
-!!XXgoldyXX: ^ need to import this
+      call history_init_files(model_doi_url, caseid, ctitle)
 
    end subroutine cam_init
 
@@ -269,6 +283,9 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
+
+      ! Update current fractional calendar day. Needs to be updated at every timestep.
+      calday = get_curr_calday()
 
    end subroutine cam_timestep_init
    !
@@ -396,10 +413,8 @@ CONTAINS
       !           file output.
       !
       !-----------------------------------------------------------------------
-!      use cam_history,  only: wshist, wrapup
 !      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
-      use time_manager, only: is_last_step
 
       type(cam_out_t), intent(inout)        :: cam_out  ! Output from CAM to surface
       type(cam_in_t),  intent(inout)        :: cam_in   ! Input from surface to CAM
@@ -409,18 +424,6 @@ CONTAINS
       integer,         intent(in), optional :: mon_spec ! Simulation month
       integer,         intent(in), optional :: day_spec ! Simulation day
       integer,         intent(in), optional :: sec_spec ! Secs in current simulation day
-
-      !----------------------------------------------------------
-      ! History and restart logic: Write and/or dispose history
-      !                            tapes if required
-      !----------------------------------------------------------
-      !
-!!XXgoldyXX: v need to import this
-!      call t_barrierf('sync_wshist', mpicom)
-!      call t_startf('wshist')
-!      call wshist()
-!      call t_stopf('wshist')
-!!XXgoldyXX: ^ need to import this
 
       !
       ! Write restart files
@@ -441,30 +444,42 @@ CONTAINS
          call t_stopf('cam_write_restart')
       end if
 
-!!XXgoldyXX: v need to import this
-!      call t_startf ('cam_run4_wrapup')
-!      call wrapup(rstwr, nlend)
-!      call t_stopf  ('cam_run4_wrapup')
-!!XXgoldyXX: ^ need to import this
-
-      call shr_sys_flush(iulog)
-
    end subroutine cam_run4
 
    !
    !-----------------------------------------------------------------------
    !
-   subroutine cam_timestep_final(do_ncdata_check)
+   subroutine cam_timestep_final(rstwr, nlend, do_ncdata_check, do_history_write)
       !-----------------------------------------------------------------------
       !
       ! Purpose:   Timestep final runs at the end of each timestep
       !
       !-----------------------------------------------------------------------
 
-      use phys_comp, only: phys_timestep_final
-
+      use phys_comp,    only: phys_timestep_final
+      use cam_history,  only: history_write_files
+      use cam_history,  only: history_wrap_up
+      logical, intent(in)  :: rstwr    ! write restart file
+      logical, intent(in)  :: nlend    ! this is final timestep
       !Flag for whether a snapshot (ncdata) check should be run or not
-      logical, intent(in) :: do_ncdata_check
+      ! - flag is true if this is not the first or last step
+      logical, intent(in)  :: do_ncdata_check
+      !Flag for whether to perform the history write
+      logical, optional, intent(in) :: do_history_write
+
+      logical :: history_write_loc
+
+      if (present(do_history_write)) then
+         history_write_loc = do_history_write
+      else
+         history_write_loc = .true.
+      end if
+
+      if (history_write_loc) then
+         call history_write_files()
+      end if
+      ! peverwhee - todo: handle restarts
+      call history_wrap_up(rstwr, nlend)
 
       !
       !----------------------------------------------------------
@@ -472,6 +487,7 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_final(do_ncdata_check)
+      call shr_sys_flush(iulog)
 
    end subroutine cam_timestep_final
 
@@ -542,6 +558,7 @@ CONTAINS
       ! physics suite being invoked during this run.
       use cam_abortutils,            only: endrun, check_allocate
       use runtime_obj,               only: runtime_options
+      use runtime_obj,               only: wv_stdname
       use phys_comp,                 only: phys_suite_name
       use cam_constituents,          only: cam_constituents_init
       use cam_constituents,          only: const_set_qmin, const_get_index
@@ -561,7 +578,6 @@ CONTAINS
       integer                                        :: errflg
       character(len=512)                             :: errmsg
       type(ccpp_constituent_prop_ptr_t), pointer     :: const_props(:)
-      type(ccpp_constituent_properties_t), allocatable, target :: dynamic_constituents(:)
       character(len=*), parameter :: subname = 'cam_register_constituents: '
 
       ! Initalize error flag and message:
@@ -570,9 +586,7 @@ CONTAINS
 
       ! Check if water vapor is already marked as a constituent by the
       ! physics:
-      call cam_ccpp_is_scheme_constituent(                                              &
-           "water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",                &
-           is_constituent, errflg, errmsg)
+      call cam_ccpp_is_scheme_constituent(wv_stdname, is_constituent, errflg, errmsg)
 
       if (errflg /= 0) then
          call endrun(subname//trim(errmsg), file=__FILE__, line=__LINE__)
@@ -590,7 +604,7 @@ CONTAINS
 
          ! Register the constituents so they can be advected:
          call host_constituents(1)%instantiate( &
-              std_name="water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water",    &
+              std_name=wv_stdname,              &
               long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
               units="kg kg-1",                                                          &
               default_value=0._kind_phys,                                               &
@@ -640,8 +654,7 @@ CONTAINS
       if (phys_suite_name /= 'held_suarez_1994') then !Held-Suarez is "dry" physics
 
          ! Get constituent index for water vapor:
-         call const_get_index("water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water", &
-                              const_idx)
+         call const_get_index(wv_stdname, const_idx)
 
          ! Set new minimum value:
          call const_set_qmin(const_idx, 1.E-12_kind_phys)

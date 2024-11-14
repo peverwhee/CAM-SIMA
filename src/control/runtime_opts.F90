@@ -32,7 +32,7 @@ contains
 
 !      use physics_grid,        only: physics_grid_readnl
 
-!      use cam_history,         only: history_readnl
+      use cam_history,         only: history_readnl
 
 !      use scamMod,             only: scam_readnl
       use physconst,           only: physconst_readnl
@@ -43,6 +43,8 @@ contains
 
 !      use cam_diagnostics,     only: diag_readnl
       use inic_analytic_utils, only: analytic_ic_readnl
+
+      use tropopause_climo_read, only: tropopause_climo_readnl
 
 !      use tracers,             only: tracers_readnl
 !      use nudging,             only: nudging_readnl
@@ -91,7 +93,7 @@ contains
       call physconst_readnl(nlfilename)
       call cam_initfiles_readnl(nlfilename)
       call cam_constituents_readnl(nlfilename)
-!      call history_readnl(nlfilename)
+      call history_readnl(nlfilename)
       call phys_readnl(nlfilename) ! Should set phys_suite_name
       call vert_coord_readnl(nlfilename)
       call ref_pres_readnl(nlfilename)
@@ -99,6 +101,7 @@ contains
 !      call diag_readnl(nlfilename)
 !      call check_energy_readnl(nlfilename)
       call analytic_ic_readnl(nlfilename)
+      call tropopause_climo_readnl(nlfilename)
 !      call scam_readnl(nlfilename, single_column, scmlat, scmlon)
 !      call nudging_readnl(nlfilename)
 

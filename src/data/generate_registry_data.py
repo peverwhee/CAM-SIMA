@@ -26,6 +26,7 @@ if __SPINSCRIPTS not in sys.path:
     sys.path.append(__SPINSCRIPTS)
 # end if
 _ALL_STRINGS_REGEX = re.compile(r'[A-Za-z][A-Za-z_0-9]+')
+_FORTRAN_NUMERIC_REGEX = re.compile(r'^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?(_kind_phys)?$')
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
@@ -940,9 +941,9 @@ class VarDict(OrderedDict):
         all_strings = _ALL_STRINGS_REGEX.findall(newvar.initial_value)
         init_val_vars = set()
         excluded_initializations = {'null', 'nan', 'false', 'true'}
-        # Exclude NULL and nan variables
+        # Exclude NULL and nan variables and valid Fortran numeric values that pass the string regex (e.g. 1.e36, -3.2e5)
         for var in all_strings:
-            if var.lower() not in excluded_initializations:
+            if var.lower() not in excluded_initializations and not _FORTRAN_NUMERIC_REGEX.match(newvar.initial_value):
                 init_val_vars.add(var)
             # end if
         # end if
@@ -1782,16 +1783,7 @@ def gen_registry(registry_file, dycore, outdir, indent,
                                     logger, schema_path=schema_dir,
                                     error_on_noxmllint=error_on_no_validate)
     except CCPPError as ccpperr:
-        cemsg = f"{ccpperr}".split('\n', maxsplit=1)[0]
-        if cemsg[0:12] == 'Execution of':
-            xstart = cemsg.find("'")
-            if xstart >= 0:
-                xend = cemsg[xstart + 1:].find("'") + xstart + 1
-                emsg += '\n' + cemsg[xstart + 1:xend]
-            # end if (else, just keep original message)
-        elif cemsg[0:18] == 'validate_xml_file:':
-            emsg += "\n" + cemsg
-        # end if
+        emsg += f"\n{ccpperr}"
         file_ok = False
     # end try
     if not file_ok:
