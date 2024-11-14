@@ -81,7 +81,7 @@
   </test>
 
   <!-- CAM7 physics tests -->
-  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_cam7">
+  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
