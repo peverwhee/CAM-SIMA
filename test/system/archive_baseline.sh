@@ -31,13 +31,13 @@ BASELINE ARCHIVED LOCATION
 SYMLINK
         By default, this script will create a symlink between the new baseline directory and
         $baseline_dir/latest_${CAM_FC} so that future tests can be run against these baselines
-        until thenext baselines are established. If you'd like to not create the symlink (e.g.
+        until the next baselines are established. If you'd like to not create the symlink (e.g.
         you are archiving old baselines), use the "--no-symlink" argument.
 
 
 WORK FLOW
 
-	This is an example for izumi.
+	This is an example for derecho.
 
 	Modify your sandbox with the changes you want.
         Run the sima test suite.
@@ -95,7 +95,6 @@ case $hostname in
     fi
     cam_tag=${cam_tag}_${CAM_FC,,}
     baselinedir="/fs/cgd/csm/models/atm/sima/pretag_bl/$cam_tag"
-    chmod_cmd="chmod -R a+r ${baselinedir}"
   ;;
 
   de*)
@@ -105,7 +104,6 @@ case $hostname in
     fi
     cam_tag=${cam_tag}_${CAM_FC,,}
     baselinedir="/glade/campaign/cesm/community/amwg/sima_baselines/$cam_tag"
-    chmod_cmd=""
   ;;
 
   * ) echo "ERROR: machine $hostname not currently supported"; exit 1 ;;
@@ -125,11 +123,10 @@ if [ -n "$CESM_TESTDIR" ]; then
     if [ -d $CESM_TESTDIR/baselines ]; then
       echo "Using cp to archive baselines."
       cp -r $CESM_TESTDIR/baselines/. $root_baselinedir/$cam_tag
-      eval ${chmod_cmd}
+      chmod -R a+r ${baselinedir}
       if [ "${symlink}" = true ]; then
         echo "Establishing symlink from '$root_baselinedir/latest_${CAM_FC,,}' to '$root_baselinedir/$cam_tag'"
-	rm -rf $root_baselinedir/latest_${CAM_FC,,}
-        ln -s $root_baselinedir/$cam_tag $root_baselinedir/latest_${CAM_FC,,}
+        ln -sfn $root_baselinedir/$cam_tag $root_baselinedir/latest_${CAM_FC,,}
       fi
     else
       echo "Using bless_test_results to archive baselines."

@@ -19,7 +19,7 @@
       dry_baroclinic_wave_jw2006: Dry baroclinic wave as specified in Jablonowski and Williamson (2006)
     </desc>
     <values>
-      <value>held_suarez_1994</value>
+      <value>none</value>
       <value phys_suite="adiabatic">held_suarez_1994</value>
       <value phys_suite="held_suarez_1994">held_suarez_1994</value>
       <value phys_suite="kessler">moist_baroclinic_wave_dcmip2016</value>

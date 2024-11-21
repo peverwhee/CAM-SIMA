@@ -34,7 +34,7 @@
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
-      <option name="comment">Test for Moist Held-Suarez physics</option>
+      <option name="comment">Test for Moist Held-Suarez (TJ2016) physics</option>
     </options>
   </test>
 
@@ -49,7 +49,7 @@
       <option name="comment">Test for MPAS dycore (with Kessler physics)</option>
     </options>
   </test>
-  <test compset="FKESSLER" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="FKESSLER" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -59,7 +59,7 @@
       <option name="comment">Test for SE-CSLAM dycore (with Kessler physics)</option>
     </options>
   </test>
-  <test compset="FHS94" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="FHS94" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -69,7 +69,7 @@
       <option name="comment">Test for SE-CSLAM dycore (with Held-Suarez physics)</option>
     </options>
   </test>
-  <test compset="FTJ16" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="FTJ16" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -81,14 +81,14 @@
   </test>
 
   <!-- CAM7 physics tests -->
-  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
+  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln9" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
-      <option name="comment">Test for SE-CSLAM dycore (with CAM7 physics)</option>
+      <option name="comment">CAM7 test with SE-CSLAM dycore</option>
     </options>
   </test>
 </testlist>
