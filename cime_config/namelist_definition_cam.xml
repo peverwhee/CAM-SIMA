@@ -263,6 +263,18 @@
       <value>UNSET_PATH</value>
     </values>
   </entry>
+  <entry id="ncdata_check_err">
+    <type>logical</type>
+    <category>initial_conditions</category>
+    <group>physics_nl</group>
+    <desc>
+      Flag to determine whether to endrun if the ncdata check fails.
+      Default: FALSE
+    </desc>
+    <values>
+      <value>.false.</value>
+    </values>
+  </entry>
   <entry id="min_difference">
     <type>real</type>
     <category>diagnostics</category>

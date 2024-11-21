@@ -1126,7 +1126,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                 call_str += f"'{levnm}', "
             # end if
             call_str += f"timestep, {var_locname}, '{var_stdname}', "
-            call_str += "min_difference, min_relative_value, is_first)"
+            call_str += "min_difference, min_relative_value, is_first, diff_found)"
         else:
             call_str = f"call endrun('Cannot check status of {var_locname}'" + \
                 f"//', {reason}')"
@@ -1141,7 +1141,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Add subroutine header:
     outfile.write("subroutine physics_check_data(file_name, suite_names, " +  \
-                  "timestep, min_difference, min_relative_value)", 1)
+                  "timestep, min_difference, min_relative_value, err_on_fail)", 1)
 
     use_stmts = [["pio", ["file_desc_t", "pio_nowrite"]],
                  ["cam_abortutils", ["endrun"]],
@@ -1176,6 +1176,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("integer,                    intent(in) :: timestep", 2)
     outfile.write("real(kind_phys),            intent(in) :: min_difference", 2)
     outfile.write("real(kind_phys),            intent(in) :: min_relative_value", 2)
+    outfile.write("logical,                    intent(in) :: err_on_fail", 2)
     outfile.blank_line()
 
     # Write local variable declarations:
@@ -1204,6 +1205,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("logical                    :: file_found", 2)
     outfile.write("logical                    :: is_first", 2)
     outfile.write("logical                    :: is_read", 2)
+    outfile.write("logical                    :: diff_found", 2)
+    outfile.write("logical                    :: overall_diff_found", 2)
     outfile.write("real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)", 2)
     outfile.blank_line()
 
@@ -1215,6 +1218,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("missing_input_names   = ' '", 2)
     outfile.write("nullify(file)", 2)
     outfile.write("is_first = .true.", 2)
+    outfile.write("overall_diff_found = .false.", 2)
     outfile.blank_line()
 
     # Begin check data log:
@@ -1280,10 +1284,16 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("exit", 8)
     outfile.write("end if", 7)
     outfile.write("end do", 6)
-    outfile.write("call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 6)
+    outfile.write("call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first, diff_found)", 6)
+    outfile.write("if (diff_found) then", 6)
+    outfile.write("overall_diff_found = .true.", 7)
+    outfile.write("end if", 6)
     outfile.write("else", 5)
     outfile.comment("If not in standard names list, then just use constituent name as input file name:",6)
-    outfile.write("call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)", 6)
+    outfile.write("call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx), ccpp_required_data(req_idx), min_difference, min_relative_value, is_first, diff_found)", 6)
+    outfile.write("if (diff_found) then", 6)
+    outfile.write("overall_diff_found = .true.", 7)
+    outfile.write("end if", 6)
     outfile.write("end if", 5)
 
     outfile.write("else", 4)
@@ -1306,6 +1316,9 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         outfile.write(read_call, 6)
         outfile.blank_line()
     outfile.write("end select !check variables", 5)
+    outfile.write("if (diff_found) then", 5)
+    outfile.write("overall_diff_found = .true.", 6)
+    outfile.write("end if", 5)
     outfile.write("end if !check if constituent", 4)
 
     # End select case and required variables loop:
@@ -1327,6 +1340,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call cam_pio_closefile(file)", 2)
     outfile.write("deallocate(file)", 2)
     outfile.write("nullify(file)", 2)
+
+    # Endrun if differences were found on this timestep
+    outfile.comment("Endrun if differences were found on this timestep and err_on_fail=TRUE", 2)
+    outfile.write("if (overall_diff_found .and. err_on_fail .and. masterproc) then", 2)
+    outfile.write("call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)", 3)
+    outfile.write("end if", 2)
 
     # Check if no differences were found
     outfile.write("if (is_first) then", 2)

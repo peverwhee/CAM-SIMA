@@ -49,7 +49,7 @@
       <option name="comment">Test for MPAS dycore (with Kessler physics)</option>
     </options>
   </test>
-  <test compset="FKESSLER" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam">
+  <test compset="FKESSLER" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -59,7 +59,7 @@
       <option name="comment">Test for SE-CSLAM dycore (with Kessler physics)</option>
     </options>
   </test>
-  <test compset="FHS94" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam">
+  <test compset="FHS94" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -69,7 +69,7 @@
       <option name="comment">Test for SE-CSLAM dycore (with Held-Suarez physics)</option>
     </options>
   </test>
-  <test compset="FTJ16" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam">
+  <test compset="FTJ16" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
@@ -81,7 +81,7 @@
   </test>
 
   <!-- CAM7 physics tests -->
-  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam">
+  <test compset="FCAM7" grid="ne5pg3_ne5pg3_mg37" name="SMS_Ln2" testmods="cam/outfrq_se_cslam_analy_ic">
     <machines>
       <machine name="derecho" compiler="intel" category="aux_sima"/>
       <machine name="derecho" compiler="gnu" category="aux_sima"/>
