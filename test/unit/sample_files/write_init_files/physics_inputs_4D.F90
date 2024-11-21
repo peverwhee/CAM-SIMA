@@ -214,7 +214,7 @@ CONTAINS
 
    end subroutine physics_read_data
 
-   subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value)
+   subroutine physics_check_data(file_name, suite_names, timestep, min_difference, min_relative_value, err_on_fail)
       use pio,                     only: file_desc_t, pio_nowrite
       use cam_abortutils,          only: endrun
       use shr_kind_mod,            only: SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX
@@ -236,6 +236,7 @@ CONTAINS
       integer,                    intent(in) :: timestep
       real(kind_phys),            intent(in) :: min_difference
       real(kind_phys),            intent(in) :: min_relative_value
+      logical,                    intent(in) :: err_on_fail
 
       ! Local variables:
 
@@ -260,6 +261,8 @@ CONTAINS
       logical                    :: file_found
       logical                    :: is_first
       logical                    :: is_read
+      logical                    :: diff_found
+      logical                    :: overall_diff_found
       real(kind=kind_phys), pointer :: field_data_ptr(:,:,:)
 
       ! Initalize missing and non-initialized variables strings:
@@ -268,6 +271,7 @@ CONTAINS
       missing_input_names   = ' '
       nullify(file)
       is_first = .true.
+      overall_diff_found = .false.
 
       if (masterproc) then
          write(iulog,*) ''
@@ -312,11 +316,17 @@ CONTAINS
                      end if
                   end do
                   call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                     &
-                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
+                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first, diff_found)
+                  if (diff_found) then
+                     overall_diff_found = .true.
+                  end if
                else
                   ! If not in standard names list, then just use constituent name as input file name:
                   call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx),                          &
-                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first)
+                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first, diff_found)
+                  if (diff_found) then
+                     overall_diff_found = .true.
+                  end if
                end if
             else
                ! The required variable is not a constituent. Check if the variable was read from a file
@@ -330,12 +340,15 @@ CONTAINS
                select case (trim(phys_var_stdnames(name_idx)))
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,                 &
-                       min_relative_value, is_first)
+                       min_relative_value, is_first, diff_found)
 
                case ('air_pressure_at_sea_level')
                   call endrun('Cannot check status of slp'//', slp has unsupported dimension, timestep_for_physics.')
 
                end select !check variables
+               if (diff_found) then
+                  overall_diff_found = .true.
+               end if
             end if !check if constituent
          end do !Suite-required variables
 
@@ -348,6 +361,10 @@ CONTAINS
       call cam_pio_closefile(file)
       deallocate(file)
       nullify(file)
+      ! Endrun if differences were found on this timestep and err_on_fail=TRUE
+      if (overall_diff_found .and. err_on_fail .and. masterproc) then
+         call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)
+      end if
       if (is_first) then
          if (masterproc) then
             write(iulog,*) ''
