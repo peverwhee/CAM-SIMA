@@ -361,10 +361,6 @@ CONTAINS
       call cam_pio_closefile(file)
       deallocate(file)
       nullify(file)
-      ! Endrun if differences were found on this timestep and err_on_fail=TRUE
-      if (overall_diff_found .and. err_on_fail .and. masterproc) then
-         call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)
-      end if
       if (is_first) then
          if (masterproc) then
             write(iulog,*) ''
@@ -375,6 +371,10 @@ CONTAINS
          write(iulog,*) ''
          write(iulog,*) '********** End Physics Check Data Results **********'
          write(iulog,*) ''
+      end if
+      ! Endrun if differences were found on this timestep and err_on_fail=TRUE
+      if (overall_diff_found .and. err_on_fail .and. masterproc) then
+         call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)
       end if
    end subroutine physics_check_data
 

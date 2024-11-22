@@ -1341,12 +1341,6 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("deallocate(file)", 2)
     outfile.write("nullify(file)", 2)
 
-    # Endrun if differences were found on this timestep
-    outfile.comment("Endrun if differences were found on this timestep and err_on_fail=TRUE", 2)
-    outfile.write("if (overall_diff_found .and. err_on_fail .and. masterproc) then", 2)
-    outfile.write("call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)", 3)
-    outfile.write("end if", 2)
-
     # Check if no differences were found
     outfile.write("if (is_first) then", 2)
     outfile.write("if (masterproc) then", 3)
@@ -1361,6 +1355,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("write(iulog,*) '********** End Physics Check Data " +      \
                   "Results **********'", 3)
     outfile.write("write(iulog,*) ''", 3)
+    outfile.write("end if", 2)
+
+    # Endrun if differences were found on this timestep
+    outfile.comment("Endrun if differences were found on this timestep and err_on_fail=TRUE", 2)
+    outfile.write("if (overall_diff_found .and. err_on_fail .and. masterproc) then", 2)
+    outfile.write("call endrun('ERROR: Difference(s) found during ncdata check', file=__FILE__, line=__LINE__)", 3)
     outfile.write("end if", 2)
 
     # End subroutine:
