@@ -32,6 +32,8 @@ module cam_control_mod
    logical, protected :: brnch_retain_casename ! true => branch run may use same caseid as
                                                !         the run being branched from
 
+   !> \section arg_table_cam_control_mod  Argument Table
+   !! \htmlinclude arg_table_cam_control_mod.html
    real(r8), protected :: eccen       ! Earth's eccentricity factor (unitless) (typically 0 to 0.1)
    real(r8), protected :: obliqr      ! Earth's obliquity in radians
    real(r8), protected :: lambm0      ! Mean longitude of perihelion at the
