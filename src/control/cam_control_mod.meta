@@ -6,7 +6,7 @@
   name  = cam_control_mod
   type  = module
 [ aqua_planet ]
-  standard_name = flag_for_aqua_planet_mode
+  standard_name = do_aqua_planet
   units = 1
   type = logical
   dimensions = ()
