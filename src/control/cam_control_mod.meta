@@ -5,6 +5,11 @@
 [ccpp-arg-table]
   name  = cam_control_mod
   type  = module
+[ aqua_planet ]
+  standard_name = flag_for_aqua_planet_mode
+  units = 1
+  type = logical
+  dimensions = ()
 [ eccen ]
   standard_name = eccentricity_factor
   units = 1
