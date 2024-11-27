@@ -134,7 +134,7 @@ while [ "${1:0:1}" == "-" ]; do
         --no-baseline ) no_baseline=false
              ;;
 
-	--no-bl-compare ) baseline_default=false
+        --no-bl-compare ) baseline_default=false
              ;;
 
         -b ) export CAM_BASEBACK="YES"
