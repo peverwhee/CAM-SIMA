@@ -6,27 +6,27 @@
   name  = cam_control_mod
   type  = module
 [ aqua_planet ]
-  standard_name = do_aqua_planet
-  units = 1
+  standard_name = is_aqua_planet
+  units = flag
   type = logical
   dimensions = ()
 [ eccen ]
-  standard_name = eccentricity_factor
+  standard_name = planet_orbital_eccentricity_factor
   units = 1
   type = real | kind = r8
   dimensions = ()
 [ obliqr ]
-  standard_name = obliquity
-  units = radians
+  standard_name = planet_obliquity
+  units = rad
   type = real | kind = r8
   dimensions = ()
 [ lambm0 ]
   standard_name = mean_longitude_of_perihelion_at_vernal_equinox
-  units = radians
+  units = rad
   type = real | kind = r8
   dimensions = ()
 [ mvelpp ]
-  standard_name = moving_vernal_equinox_longitude_perihelion_plus_pi
-  units = radians
+  standard_name = moving_vernal_equinox_longitude_of_perihelion_plus_pi
+  units = rad
   type = real | kind = r8
   dimensions = ()
