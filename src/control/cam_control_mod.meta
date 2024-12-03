@@ -17,6 +17,7 @@
   dimensions = ()
 [ obliqr ]
   standard_name = planet_obliquity
+  long_name = planet's axial tilt (obliquity)
   units = rad
   type = real | kind = r8
   dimensions = ()
