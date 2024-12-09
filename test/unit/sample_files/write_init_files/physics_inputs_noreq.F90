@@ -73,6 +73,7 @@ CONTAINS
       ! Fields needed for getting default data value for constituents
       type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
       real(kind=kind_phys)                       :: constituent_default_value
+      real(kind=kind_phys)                       :: constituent_min_value
       integer                                    :: constituent_errflg
       character(len=512)                         :: constituent_errmsg
       logical                                    :: constituent_has_default
@@ -206,7 +207,9 @@ CONTAINS
                   write(iulog,*) 'Constituent ', trim(std_name), ' initialized to default value: ', constituent_default_value
                end if
             else
-               field_data_ptr(:,:,constituent_idx) = 0._kind_phys
+               ! Intialize to constituent's configured minimum value
+               call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
+               field_data_ptr(:,:,constituent_idx) = constituent_min_value
                if (masterproc) then
                   write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'
                end if
