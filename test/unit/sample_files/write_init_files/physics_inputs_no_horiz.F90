@@ -318,31 +318,6 @@ CONTAINS
             ! First check if the required variable is a constituent:
             call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)
             if (constituent_idx > -1) then
-               ! The required variable is a constituent. Call check variable routine on the relevant index of the constituent array
-               field_data_ptr => cam_advected_constituents_array()
-
-               ! Check if constituent standard name in registered SIMA standard names list:
-               if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                  ! Find array index to extract correct input names:
-                  do n=1, phys_var_num
-                     if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
-                        const_input_idx = n
-                        exit
-                     end if
-                  end do
-                  call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                     &
-                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first, diff_found)
-                  if (diff_found) then
-                     overall_diff_found = .true.
-                  end if
-               else
-                  ! If not in standard names list, then just use constituent name as input file name:
-                  call check_field(file, [ccpp_required_data(req_idx)], 'lev', timestep, field_data_ptr(:,:,constituent_idx),                          &
-                       ccpp_required_data(req_idx), min_difference, min_relative_value, is_first, diff_found)
-                  if (diff_found) then
-                     overall_diff_found = .true.
-                  end if
-               end if
                cycle
             else
                ! The required variable is not a constituent. Check if the variable was read from a file
@@ -389,11 +364,17 @@ CONTAINS
                end if
             end do
             call check_field(file, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name,                 &
-                 min_difference, min_relative_value, is_first)
+                 min_difference, min_relative_value, is_first, diff_found)
+            if (diff_found) then
+               overall_diff_found = .true.
+            end if
          else
             ! If not in standard names list, then just use constituent name as input file name:
             call check_field(file, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), std_name, min_difference, min_relative_value,     &
-                 is_first)
+                 is_first, diff_found)
+            if (diff_found) then
+               overall_diff_found = .true.
+            end if
          end if
       end do
       ! Close check file:
