@@ -13,13 +13,13 @@
   protected = True
 [ latitude ]
   standard_name = latitude
-  units = rad
+  units = radians
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
 [ longitude ]
   standard_name = longitude
-  units = rad
+  units = radians
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
