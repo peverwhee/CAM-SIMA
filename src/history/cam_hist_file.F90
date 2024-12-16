@@ -1485,7 +1485,8 @@ CONTAINS
                split_file_index == instantaneous_file_index .and. .not. restart) then
                cycle
             end if
-            call this%write_field(this%field_list(field_idx), split_file_index, restart, start, field_idx)
+            call this%write_field(this%field_list(field_idx), split_file_index, restart, start, field_idx, &
+               this%precision())
          end do
       end do
       call t_stopf  ('write_field')
@@ -1495,13 +1496,14 @@ CONTAINS
    ! ========================================================================
 
    subroutine config_write_field(this, field, split_file_index, restart, &
-      sample_index, field_index)
+      sample_index, field_index, field_precision)
       use pio,                 only: PIO_OFFSET_KIND, pio_setframe
       use hist_buffer,         only: hist_buffer_t
       use hist_api,            only: hist_buffer_norm_value
       use cam_grid_support,    only: cam_grid_write_dist_array
       use cam_abortutils,      only: check_allocate, endrun
       use hist_field,          only: hist_field_info_t
+      use shr_kind_mod,        only: r4 => shr_kind_r4
       ! Dummy arguments
       class(hist_file_t),      intent(inout) :: this
       type(hist_field_info_t), intent(inout) :: field
@@ -1509,6 +1511,7 @@ CONTAINS
       logical,                 intent(in)    :: restart
       integer,                 intent(in)    :: sample_index
       integer,                 intent(in)    :: field_index
+      character(len=*),        intent(in)    :: field_precision
 
       ! Local variables
       integer, allocatable           :: field_shape(:) ! Field file dim sizes
@@ -1522,7 +1525,8 @@ CONTAINS
       type(var_desc_t)               :: varid
       integer                        :: field_decomp
       integer                        :: idx
-      real(r8), allocatable          :: field_data(:,:)
+      real(r8), allocatable          :: field_data_r8(:,:)
+      real(r4), allocatable          :: field_data_r4(:,:)
       class(hist_buffer_t), pointer  :: buff_ptr
       character(len=*), parameter    :: subname = 'config_write_field: '
 
@@ -1533,11 +1537,21 @@ CONTAINS
       end_dims = field%end_dims()
       frank = size(field_shape)
       if (frank == 1) then
-         allocate(field_data(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
-         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
+         if (trim(field_precision) == 'REAL32') then
+            allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
+            call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1)
+         else
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1)
+         end if
       else
-         allocate(field_data(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr)
-         call check_allocate(ierr, subname, 'field_data', file=__FILE__, line=__LINE__-1)
+         if (trim(field_precision) == 'REAL32') then
+            allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr)
+            call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1)
+         else
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1)
+         end if
       end if
       ! Shape of array
       dimind = field%dimensions()
@@ -1556,13 +1570,25 @@ CONTAINS
          call pio_setframe(this%hist_files(split_file_index), varid, int(sample_index,kind=PIO_OFFSET_KIND))
          buff_ptr => field%buffers
          if (frank == 1) then
-            call hist_buffer_norm_value(buff_ptr, field_data(:,1))
-            call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
-                 field_shape, field_data(:,1), varid)
+            if (trim(field_precision) == 'REAL32') then
+               call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1))
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+                    field_shape, field_data_r4(:,1), varid)
+            else
+               call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1))
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+                    field_shape, field_data_r8(:,1), varid)
+            end if
          else
-            call hist_buffer_norm_value(buff_ptr, field_data)
-            call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
-                 field_shape, field_data, varid)
+            if (trim(field_precision) == 'REAL32') then
+               call hist_buffer_norm_value(buff_ptr, field_data_r4)
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+                    field_shape, field_data_r4, varid)
+            else
+               call hist_buffer_norm_value(buff_ptr, field_data_r8)
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+                    field_shape, field_data_r8, varid)
+            end if
          end if
       end do
 
