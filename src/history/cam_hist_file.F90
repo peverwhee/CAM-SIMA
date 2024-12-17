@@ -1415,7 +1415,7 @@ CONTAINS
       ! Increment samples
       this%num_samples = this%num_samples + 1
 
-      start = mod(this%num_samples, this%max_frames) + 1
+      start = mod(this%num_samples, this%max_frames)
       count1 = 1
 
       is_initfile = (this%hfile_type == hfile_type_init_value)
