@@ -1574,11 +1574,11 @@ CONTAINS
          if (frank == 1) then
             if (trim(field_precision) == 'REAL32') then
                call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1))
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1), &
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r4(:,1), varid)
             else
                call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1))
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1), &
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, (/dim_sizes(1)/), &
                     field_shape, field_data_r8(:,1), varid)
             end if
          else
