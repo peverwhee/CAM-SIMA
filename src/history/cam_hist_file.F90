@@ -1528,6 +1528,7 @@ CONTAINS
       real(r8), allocatable          :: field_data_r8(:,:)
       real(r4), allocatable          :: field_data_r4(:,:)
       class(hist_buffer_t), pointer  :: buff_ptr
+      character(len=CL)              :: errmsg
       character(len=*), parameter    :: subname = 'config_write_field: '
 
       !!! Get the field's shape and decomposition
@@ -1538,19 +1539,19 @@ CONTAINS
       frank = size(field_shape)
       if (frank == 1) then
          if (trim(field_precision) == 'REAL32') then
-            allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
-            call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1)
+            allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          else
-            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr)
-            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1)
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, 1), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          end if
       else
          if (trim(field_precision) == 'REAL32') then
-            allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr)
-            call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1)
+            allocate(field_data_r4(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r4', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          else
-            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr)
-            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1)
+            allocate(field_data_r8(end_dims(1) - beg_dims(1) + 1, field_shape(2)), stat=ierr, errmsg=errmsg)
+            call check_allocate(ierr, subname, 'field_data_r8', file=__FILE__, line=__LINE__-1, errmsg=errmsg)
          end if
       end if
       ! Shape of array
@@ -1572,21 +1573,21 @@ CONTAINS
          if (frank == 1) then
             if (trim(field_precision) == 'REAL32') then
                call hist_buffer_norm_value(buff_ptr, field_data_r4(:,1))
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1), &
                     field_shape, field_data_r4(:,1), varid)
             else
                call hist_buffer_norm_value(buff_ptr, field_data_r8(:,1))
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1), &
                     field_shape, field_data_r8(:,1), varid)
             end if
          else
             if (trim(field_precision) == 'REAL32') then
                call hist_buffer_norm_value(buff_ptr, field_data_r4)
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r4, varid)
             else
                call hist_buffer_norm_value(buff_ptr, field_data_r8)
-               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1: frank), &
+               call cam_grid_write_dist_array(this%hist_files(split_file_index), field_decomp, dim_sizes(1:frank), &
                     field_shape, field_data_r8, varid)
             end if
          end if
