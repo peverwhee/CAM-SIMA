@@ -171,76 +171,55 @@ CONTAINS
       field_data_ptr => cam_constituents_array()
       const_props => cam_model_const_properties()
 
-                  ! Check if constituent standard name in registered SIMA standard names list:
-                  if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                     ! Find array index to extract correct input names:
-                     do n=1, phys_var_num
-                        if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
-                           const_input_idx = n
-                           exit
-                        end if
-                     end do
-                     call read_field(file, ccpp_required_data(req_idx), input_var_names(:,const_input_idx), 'lev', timestep,                           &
-                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
-                  else
-                     ! If not in standard names list, then just use constituent name as input file name:
-                     call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep,                                &
-                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
-                  end if
-                  if(.not. var_found) then
-                     const_props => cam_model_const_properties()
-                     constituent_has_default = .false.
-                     call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)
-                     if (constituent_errflg /= 0) then
-                        call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-                     end if
-                     if (constituent_has_default) then
-                        call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
-                        if (constituent_errflg /= 0) then
-                           call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-                        end if
-                        field_data_ptr(:,:,constituent_idx) = constituent_default_value
-                        if (masterproc) then
-                           write(iulog,*) 'Consitituent ', trim(ccpp_required_data(req_idx)), ' initialized to default value: ',                       &
-                                constituent_default_value
-                        end if
-                     else
-                        field_data_ptr(:,:,constituent_idx) = 0._kind_phys
-                        if (masterproc) then
-                           write(iulog,*) 'Constituent ', trim(ccpp_required_data(req_idx)), ' default value not configured.  Setting to 0.'
-                        end if
-                     end if
-                  end if
-
-               case default
-
-                  ! Read variable from IC file:
-
-                  select case (trim(phys_var_stdnames(name_idx)))
-                     case ('air_pressure_at_sea_level')
-                        call read_field(file, 'air_pressure_at_sea_level', input_var_names(:,name_idx), timestep, slp)
-
-                  end select !read variables
-               end select !special indices
-
-         end do !Suite-required variables
-
-         ! End simulation if there are missing input variables that are required:
-         if (len_trim(missing_required_vars) > 0) then
-            call endrun("Required variables missing from registered list of input variables: "//&
-               trim(missing_required_vars))
+      ! Iterate over all registered constituents
+      do constituent_idx = 1, size(const_props)
+         var_found = .false.
+         ! Check if constituent standard name in registered SIMA standard names list:
+         call const_props(constituent_idx)%standard_name(std_name)
+         if(any(phys_var_stdnames == trim(std_name))) then
+            ! Don't read the variable in if it's already initialized
+            if (is_initialized(std_name)) then
+               cycle
+            end if
+            ! Find array index to extract correct input names:
+            do n=1, phys_var_num
+               if(trim(phys_var_stdnames(n)) == trim(std_name)) then
+                  const_input_idx = n
+                  exit
+               end if
+            end do
+            call read_field(file, std_name, input_var_names(:,const_input_idx), 'lev', timestep, field_data_ptr(:,:,constituent_idx),                  &
+                 mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
+         else
+            ! If not in standard names list, then just use constituent name as input file name:
+            call read_field(file, std_name, [std_name], 'lev', timestep, field_data_ptr(:,:,constituent_idx), mark_as_read=.false.,                    &
+                 error_on_not_found=.false., var_found=var_found)
          end if
-
-         ! End simulation if there are protected input variables that are not initialized:
-         if (len_trim(protected_non_init_vars) > 0) then
-            call endrun("Required, protected input variables are not initialized: "//&
-               trim(protected_non_init_vars))
+         if(.not. var_found) then
+            constituent_has_default = .false.
+            call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)
+            if (constituent_errflg /= 0) then
+               call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
+            end if
+            if (constituent_has_default) then
+               call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
+               if (constituent_errflg /= 0) then
+                  call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
+               end if
+               field_data_ptr(:,:,constituent_idx) = constituent_default_value
+               if (masterproc) then
+                  write(iulog,*) 'Constituent ', trim(std_name), ' initialized to default value: ', constituent_default_value
+               end if
+            else
+               ! Intialize to constituent's configured minimum value
+               call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)
+               field_data_ptr(:,:,constituent_idx) = constituent_min_value
+               if (masterproc) then
+                  write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'
+               end if
+            end if
          end if
-
-         ! Deallocate required variables array for use in next suite:
-         deallocate(ccpp_required_data)
-
-      end do !CCPP suites
+      end do
 
    end subroutine physics_read_data
 

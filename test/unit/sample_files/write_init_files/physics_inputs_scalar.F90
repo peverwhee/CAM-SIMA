@@ -135,51 +135,7 @@ CONTAINS
 
                case (const_idx)
 
-                  ! If an index was found in the constituent hash table, then read in the data to that index of the constituent array
-
-                  var_found = .false.
-                  field_data_ptr => cam_constituents_array()
-
-                  ! Check if constituent standard name in registered SIMA standard names list:
-                  if(any(phys_var_stdnames == ccpp_required_data(req_idx))) then
-                     ! Find array index to extract correct input names:
-                     do n=1, phys_var_num
-                        if(trim(phys_var_stdnames(n)) == trim(ccpp_required_data(req_idx))) then
-                           const_input_idx = n
-                           exit
-                        end if
-                     end do
-                     call read_field(file, ccpp_required_data(req_idx), input_var_names(:,const_input_idx), 'lev', timestep,                           &
-                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
-                  else
-                     ! If not in standard names list, then just use constituent name as input file name:
-                     call read_field(file, ccpp_required_data(req_idx), [ccpp_required_data(req_idx)], 'lev', timestep,                                &
-                          field_data_ptr(:,:,constituent_idx), mark_as_read=.false., error_on_not_found=.false., var_found=var_found)
-                  end if
-                  if(.not. var_found) then
-                     const_props => cam_model_const_properties()
-                     constituent_has_default = .false.
-                     call const_props(constituent_idx)%has_default(constituent_has_default, constituent_errflg, constituent_errmsg)
-                     if (constituent_errflg /= 0) then
-                        call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-                     end if
-                     if (constituent_has_default) then
-                        call const_props(constituent_idx)%default_value(constituent_default_value, constituent_errflg, constituent_errmsg)
-                        if (constituent_errflg /= 0) then
-                           call endrun(constituent_errmsg, file=__FILE__, line=__LINE__)
-                        end if
-                        field_data_ptr(:,:,constituent_idx) = constituent_default_value
-                        if (masterproc) then
-                           write(iulog,*) 'Consitituent ', trim(ccpp_required_data(req_idx)), ' initialized to default value: ',                       &
-                                constituent_default_value
-                        end if
-                     else
-                        field_data_ptr(:,:,constituent_idx) = 0._kind_phys
-                        if (masterproc) then
-                           write(iulog,*) 'Constituent ', trim(ccpp_required_data(req_idx)), ' default value not configured.  Setting to 0.'
-                        end if
-                     end if
-                  end if
+                  ! If an index was found in the constituent hash table, then do nothing, this will be handled later
 
                case default
 
