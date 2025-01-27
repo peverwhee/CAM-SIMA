@@ -521,7 +521,7 @@
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
-    <variable local_name="ql"
+    <variable local_name="icwmrdp"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
@@ -548,7 +548,7 @@
               access="protected" >
       <initial_value>1</initial_value>
     </variable>
-    <variable local_name="dpdry"
+    <variable local_name="dpdry_ideep"
               standard_name="air_pressure_thickness_of_dry_air_for_deep_convection_for_gathered_convective_columns"
               units="hPa" type="real" kind="kind_phys"
               allocatable="allocatable">
