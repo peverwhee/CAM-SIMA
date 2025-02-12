@@ -502,17 +502,12 @@
     </variable>
 
     <!-- Zhang McFarlane (ZM) Variables -->
-    <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
     <variable local_name="pblh"
               standard_name="atmosphere_boundary_layer_thickness"
               units="m" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>pblh pbuf_pblh</ic_file_input_names>
-    </variable>
-    <variable local_name="delt"
-              standard_name="half_timestep_for_physics"
-              units="s" type="real" kind="kind_phys">
     </variable>
     <variable local_name="tpert"
               standard_name="convective_temperature_perturbation_due_to_pbl_eddies"
@@ -521,7 +516,7 @@
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
-    <variable local_name="icwmrdp"
+    <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
               units="kg kg-1" type="real" kind="kind_phys"
               allocatable="allocatable">
@@ -548,7 +543,7 @@
               access="protected" >
       <initial_value>1</initial_value>
     </variable>
-    <variable local_name="dpdry_ideep"
+    <variable local_name="dpdry"
               standard_name="air_pressure_thickness_of_dry_air_for_deep_convection_for_gathered_convective_columns"
               units="hPa" type="real" kind="kind_phys"
               allocatable="allocatable">
