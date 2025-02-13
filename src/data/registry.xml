@@ -573,16 +573,24 @@
       <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
     </variable>
 
-    <!-- Shallow convection variables -->
+    <!-- Cloud fraction variables - need to be kept in physics state -->
+    <variable local_name="top_lev_cloudphys"
+              standard_name="vertical_layer_index_of_cloud_fraction_top"
+              units="index" type="integer">
+      <long_name>vertical layer index for top of cloud area fraction schemes</long_name>
+      <initial_value>1</initial_value>
+    </variable>
+
+    <!-- Shallow convection variables - need to be kept in physics state -->
     <variable local_name="convect_shallow_use_shfrc"
-              standard_name="flag_for_cloud_fraction_use_shallow_convection_calculated_clouds_tbd"
+              standard_name="flag_for_cloud_area_fraction_use_shallow_convection_calculated_cloud_area_fraction"
               units="flag" type="logical">
-      <long_name>should cloud fraction use shallow convection calculated convective clouds</long_name>
+      <long_name>should cloud fraction use shallow convection calculated convective cloud area fraction</long_name>
       <!-- only true for UW and UNICON shallow schemes. set by scheme init. -->
       <initial_value>.false.</initial_value>
     </variable>
     <variable local_name="shfrc"
-              standard_name="convective_cloud_fraction_due_to_shallow_convection_tbd"
+              standard_name="shallow_convective_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
