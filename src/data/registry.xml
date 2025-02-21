@@ -581,6 +581,7 @@
               units="fraction" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
     </variable>
 
@@ -595,6 +596,14 @@
            while a PBL scheme is unavailable. -->
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pblh pbuf_pblh</ic_file_input_names>
+    </variable>
+    <variable local_name="tpert"
+              standard_name="convective_temperature_perturbation_due_to_pbl_eddies"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
 
     <!-- Cloud fraction variables - need to be kept in physics state -->
@@ -626,13 +635,6 @@
     <variable local_name="delt"
               standard_name="half_timestep_for_physics"
               units="s" type="real" kind="kind_phys">
-    </variable>
-    <variable local_name="tpert"
-              standard_name="convective_temperature_perturbation_due_to_pbl_eddies"
-              units="K" type="real" kind="kind_phys"
-              allocatable="allocatable">
-      <dimensions>horizontal_dimension</dimensions>
-      <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
     <variable local_name="ql"
               standard_name="in_cloud_water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water_due_to_deep_convection"
