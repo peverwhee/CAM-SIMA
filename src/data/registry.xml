@@ -584,6 +584,30 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>landfrac cam_in_landfrac</ic_file_input_names>
     </variable>
+    <variable local_name="icefrac"
+              standard_name="sea_ice_area_fraction"
+              units="fraction" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>icefrac cam_in_icefrac</ic_file_input_names>
+    </variable>
+    <variable local_name="snowhland"
+              standard_name="lwe_surface_snow_depth_over_land"
+              units="m" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>snowhland cam_in_snowhland</ic_file_input_names>
+    </variable>
+    <variable local_name="sst"
+              standard_name="sea_surface_temperature"
+              units="K" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
+    </variable>
 
     <!-- Temporary initializations from snapshot -->
     <!-- Note that no_deep_pbl defaults to false, but needs to be set to true for diag_TKE or UW schemes -->
