@@ -605,7 +605,9 @@
               units="K" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
-      <initial_value>0.0_kind_phys</initial_value>
+      <!-- FIXME: this is a temporary initialization to allow CAM4/CAM7 suites to run standalone,
+           while SSTs are not being provided from another Earth system component. -->
+      <initial_value>273.15_kind_phys</initial_value>
       <ic_file_input_names>sst cam_in_sst</ic_file_input_names>
     </variable>
 
