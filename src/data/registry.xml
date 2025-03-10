@@ -202,8 +202,6 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>pbuf_RPRDDP</ic_file_input_names>
     </variable>
-    <!-- note: rliq and rliq2 from CAM snapshot appear to be in m s-1 (precip) units.
-         the CCPP standard names table claim that it should be in kg m-2 s-1 units. -->
     <variable local_name="rliq"
               standard_name="vertically_integrated_cloud_liquid_water_tendency_due_to_all_convection_to_be_applied_later_in_time_loop"
               units="m s-1" type="real" kind="kind_phys"
@@ -632,7 +630,7 @@
       <ic_file_input_names>tpert pbuf_tpert</ic_file_input_names>
     </variable>
 
-    <!-- Cloud fraction variables - need to be kept in physics state -->
+    <!-- Cloud fraction variables - need to be kept in the CAM registry -->
     <variable local_name="top_lev_cloudphys"
               standard_name="vertical_layer_index_of_cloud_fraction_top"
               units="index" type="integer">
@@ -640,7 +638,7 @@
       <initial_value>1</initial_value>
     </variable>
 
-    <!-- Shallow convection variables - need to be kept in physics state -->
+    <!-- Shallow convection variables - need to be kept in the CAM registry -->
     <variable local_name="convect_shallow_use_shfrc"
               standard_name="flag_for_cloud_area_fraction_to_use_shallow_convection_calculated_cloud_area_fraction"
               units="flag" type="logical">
