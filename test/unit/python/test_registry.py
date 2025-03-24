@@ -812,10 +812,10 @@ class RegistryTest(unittest.TestCase):
                         new_ddt = ET.SubElement(obj, "ddt")
                         new_ddt.set("type", dtype)
                         data_elem = ET.SubElement(new_ddt, "data")
-                        data_elem.set("dycore", "EUL")
+                        data_elem.set("dyn", "EUL")
                         data_elem.text = 'latitude'
                         data_elem = ET.SubElement(new_ddt, "data")
-                        data_elem.set("dycore", "EUL")
+                        data_elem.set("dyn", "EUL")
                         data_elem.text = 'longitude'
                         break
                     # End if
