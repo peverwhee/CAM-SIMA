@@ -19,8 +19,8 @@
         fxDONOTUSEurl = https://github.com/MPAS-Dev/MPAS-Model.git
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
-	url           = https://github.com/peverwhee/atmospheric_physics
-	fxtag         = e4df853e46f14ead81189ddb7e5ccc6281667cd4
+	url           = https://github.com/ESCOMP/atmospheric_physics
+	fxtag         = bb7c61028c1d6ead2c09b2c58cfbbfb3c3638a51
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "rrtmgp-data"]
