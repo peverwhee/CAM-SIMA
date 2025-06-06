@@ -21,6 +21,7 @@ module orbital_data
   real(kind_phys),              protected, public :: solar_declination  = FILL_R8 ! Solar declination angle [radians]
   real(kind_phys),              protected, public :: earth_sun_distance = FILL_R8 ! Earth-sun distance [AU]
   real(kind_phys), allocatable, protected, public :: solar_zenith_angle(:)        ! Solar zenith angle (column) [radians]
+  real(kind_phys), allocatable, protected, public :: coszrs_rad(:)                ! Cosine of solar zenith angle (column) for radiation [radians]
 
   ! Local parameters
   character(len=*), parameter :: module_name = '(orbital_data)'
@@ -50,12 +51,18 @@ contains
     call check_allocate(error_code, subroutine_name, &
                         'solar_zenith_angle(number_of_columns)', &
                         file=__FILE__, line=__LINE__)
+    allocate(coszrs_rad(number_of_columns), source=FILL_R8, &
+             stat=error_code)
+    call check_allocate(error_code, subroutine_name, &
+                        'coszrs_rad(number_of_columns)', &
+                        file=__FILE__, line=__LINE__)
    
   end subroutine orbital_data_init
 
   !=======================================================================
 
-  subroutine orbital_data_advance(calendar_day, latitudes, longitudes)
+  subroutine orbital_data_advance(calendar_day, latitudes, longitudes, use_rad_uniform_angle, &
+               rad_uniform_angle, dt_avg)
    
     !-----------------------------------------------------------------------
     !
@@ -69,6 +76,9 @@ contains
     real(kind_phys), intent(in) :: calendar_day  ! Fractional Julian calendar day (1.xx to 365.xx)
     real(kind_phys), intent(in) :: latitudes(:)  ! Centered latitude (column) [radians]
     real(kind_phys), intent(in) :: longitudes(:) ! Centered longitude (column) [radians]
+    real(kind_phys), intent(in) :: rad_uniform_angle
+    real(kind_phys), intent(in) :: dt_avg
+    logical,         intent(in) :: use_rad_uniform_angle
 
     integer :: i
 
@@ -81,6 +91,20 @@ contains
       solar_zenith_angle(i) = acos(shr_orb_cosz(calendar_day, latitudes(i), &
                                                 longitudes(i), solar_declination))
     end do
+
+    ! Compute the cosine of solar zenith angle for radiation [radians]
+    if (use_rad_uniform_angle) then
+       do i = 1, size(latitudes)
+          coszrs_rad(i) = shr_orb_cosz(calendar_day, latitudes(i), longitudes(i), &
+                                   solar_declination, dt_avg, uniform_angle=rad_uniform_angle)
+       end do
+    else
+       do i = 1, size(latitudes)
+          ! if dt_avg /= 0, it triggers using avg coszrs
+          coszrs_rad(i) = shr_orb_cosz(calendar_day, latitudes(i), longitudes(i), &
+                                   solar_declination, dt_avg)
+       end do
+    end if
    
    end subroutine orbital_data_advance
 

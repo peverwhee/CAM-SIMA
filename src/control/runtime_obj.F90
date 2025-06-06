@@ -2,12 +2,18 @@ module runtime_obj
 
    use shr_kind_mod, only: CS => SHR_KIND_CS
    use shr_kind_mod, only: r8=>shr_kind_r8
+   use ccpp_kinds,   only: kind_phys
    implicit none
    private
 
+   !> \section arg_table_runtime_obj  Argument Table
+   !! \htmlinclude arg_table_runtime_obj.html
+   !!
+   real(kind_phys),  public, parameter :: unset_real   = huge(1.0_r8)
+
    character(len=*), public, parameter :: unset_str    = 'UNSET'
    integer,          public, parameter :: unset_int    = huge(1)
-   real(r8),         public, parameter :: unset_real   = huge(1.0_r8)
+   !real(r8),         public, parameter :: unset_real   = huge(1.0_r8)
 
    ! Water vapor constituent standard name
    character(len=*), public, parameter :: wv_stdname = 'water_vapor_mixing_ratio_wrt_moist_air_and_condensed_water'

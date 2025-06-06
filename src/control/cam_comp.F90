@@ -190,7 +190,9 @@ CONTAINS
 
       ! Get current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
+      next_calday = get_curr_calday(offset=int(get_step_size()))
       call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
+      call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -299,12 +301,14 @@ CONTAINS
       use physics_grid, only: lat_rad, lon_rad
       use orbital_data, only: orbital_data_advance
       use stepon,       only: stepon_timestep_init
+      use physics_types,only: dt_avg
 
       ! Update current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
 
       ! Update the orbital data
-      call orbital_data_advance(calday, lat_rad, lon_rad)
+      call orbital_data_advance(calday, lat_rad, lon_rad, use_rad_uniform_angle, &
+                     rad_uniform_angle, dt_avg)
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()

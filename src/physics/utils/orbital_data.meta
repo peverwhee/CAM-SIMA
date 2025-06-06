@@ -22,3 +22,9 @@
   type = real | kind = kind_phys
   dimensions = (horizontal_dimension)
   protected = True
+[coszrs_rad]
+  standard_name = cosine_of_solar_zenith_angle_for_radiation
+  units = rad
+  type = real | kind = kind_phys
+  dimensions = (horizontal_dimension)
+  protected = True
