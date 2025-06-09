@@ -1067,7 +1067,6 @@ class VarDict(OrderedDict):
     def check_initial_values(self, physconst_vars,use_statements):
         """Raise an error if there are any initial values that are set to
         non-"used" and/or non-"physconst" variables"""
-        print(use_statements)
         for var in self.known_initial_value_vars:
             if var not in physconst_vars and not any(second == var for _, second in use_statements):
                 emsg = f"Initial value '{var}' is not a physconst variable"
