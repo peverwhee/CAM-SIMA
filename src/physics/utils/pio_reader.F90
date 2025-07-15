@@ -23,7 +23,7 @@ module pio_reader
    type :: file_handle_t
       logical            :: is_file_open = .false.  !Is NetCDF file currently open?
       type(file_desc_t)  :: pio_fh                  !PIO File handle type
-      character(len=cl)  :: file_path = ''          !Local path to NetCDF file
+      character(len=cl)  :: file_path = 'UNSET'     !Local path to NetCDF file
    end type
 
    type, extends(abstract_netcdf_reader_t) :: pio_reader_t
@@ -55,34 +55,34 @@ module pio_reader
 contains
 
    subroutine open_netcdf_file(this, file_path, errmsg, errcode)
-      use ioFileMod,        only: cam_get_file
-      use cam_pio_utils,    only: cam_pio_openfile
-      use pio,              only: PIO_NOWRITE
+      use cam_pio_utils,  only: cam_pio_openfile
+      use pio,            only: PIO_NOWRITE
+      use pio,            only: PIO_NOERR
 
       class(pio_reader_t), intent(inout)  :: this
       character(len=*),    intent(in)  :: file_path
       integer,             intent(out) :: errcode
       character(len=*),    intent(out) :: errmsg
 
-      character(len=cl)  :: local_file_path  !NetCDF file path on local file system
-
       if(this%sima_pio_fh%is_file_open) then
          errcode = 1
-         errmsg = "Trying to reuse pio_reader already used for: '"//this%sima_pio_fh%file_path
+         errmsg = "Trying to reuse pio_reader already used for: '"//trim(this%sima_pio_fh%file_path)//"'"
          return
       end if
 
-      if(file_path == 'UNSET_PATH') then
-         errcode = 1
-         errmsg = "Found UNSET_PATH trying to open file"
+      !Open provided file with PIO:
+      call cam_pio_openfile(this%sima_pio_fh%pio_fh, file_path, PIO_NOWRITE, &
+      errcode=errcode)
+
+      if(errcode /= PIO_NOERR) then
+         !Extract error message from PIO and return:
+         call get_pio_errmsg(1, file_path, errcode, errmsg, &
+         file_msg=.true.)
          return
       end if
-
-      call cam_get_file(file_path, local_file_path)
-      call cam_pio_openfile(this%sima_pio_fh%pio_fh, local_file_path, PIO_NOWRITE)
 
       !Set file handle metadata
-      this%sima_pio_fh%file_path    = local_file_path
+      this%sima_pio_fh%file_path    = file_path
       this%sima_pio_fh%is_file_open = .true.
 
       !File was successfully opened
@@ -91,7 +91,7 @@ contains
    end subroutine open_netcdf_file
 
    subroutine close_netcdf_file(this, errmsg, errcode)
-      use pio, only: pio_closefile
+      use cam_pio_utils, only: cam_pio_closefile
 
       class(pio_reader_t), intent(inout)  :: this
       integer,             intent(out) :: errcode
@@ -106,11 +106,12 @@ contains
       end if
 
       !Close NetCDF File:
-      call pio_closefile(this%sima_pio_fh%pio_fh)
+      call cam_pio_closefile(this%sima_pio_fh%pio_fh)
 
-      !Inidcate that file handle array id is no longer in use:
+      !Indicate that file handle array id is no longer in use,
+      !but keep file path the same in case it is needed for
+      !related error messages in other routines:
       this%sima_pio_fh%is_file_open = .false.
-      this%sima_pio_fh%file_path = ''
 
       !File was successfully closed
       errcode = 0
@@ -152,7 +153,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -167,7 +168,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -178,7 +179,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -190,7 +191,7 @@ contains
       errcode = 0
       if(ndims /= 0) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -198,12 +199,18 @@ contains
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
+      allocate(var, stat=errcode, errmsg=errmsg)
+      if(errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
       var = huge(1)
       errcode = pio_get_var(pio_file_handle, var_id, var)
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -250,7 +257,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -265,7 +272,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -276,7 +283,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -288,7 +295,7 @@ contains
       errcode = 0
       if(ndims /= 1) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -307,7 +314,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -327,7 +334,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -348,7 +355,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -395,7 +402,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -410,7 +417,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -421,7 +428,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -433,7 +440,7 @@ contains
       errcode = 0
       if(ndims /= 2) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -452,7 +459,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -472,7 +479,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -493,7 +500,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -540,7 +547,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -555,7 +562,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -566,7 +573,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -578,7 +585,7 @@ contains
       errcode = 0
       if(ndims /= 3) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -597,7 +604,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -617,7 +624,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -638,7 +645,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -685,7 +692,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -700,7 +707,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -711,7 +718,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -723,7 +730,7 @@ contains
       errcode = 0
       if(ndims /= 4) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -742,7 +749,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -762,7 +769,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -783,7 +790,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -830,7 +837,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -845,7 +852,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -856,7 +863,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -868,7 +875,7 @@ contains
       errcode = 0
       if(ndims /= 5) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -887,7 +894,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -907,7 +914,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -929,7 +936,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -980,7 +987,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -995,7 +1002,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1006,7 +1013,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1018,7 +1025,7 @@ contains
       errcode = 0
       if(ndims /= 0) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1026,12 +1033,18 @@ contains
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
+      allocate(var, stat=errcode, errmsg=errmsg)
+      if(errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
       var = huge(1._kind_phys)
       errcode = pio_get_var(pio_file_handle, var_id, var)
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1078,7 +1091,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1093,7 +1106,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1104,7 +1117,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1116,7 +1129,7 @@ contains
       errcode = 0
       if(ndims /= 1) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1135,7 +1148,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1155,7 +1168,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1176,7 +1189,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1223,7 +1236,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1238,7 +1251,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1249,7 +1262,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1261,7 +1274,7 @@ contains
       errcode = 0
       if(ndims /= 2) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1280,7 +1293,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1300,7 +1313,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1321,7 +1334,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1368,7 +1381,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1383,7 +1396,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1394,7 +1407,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1406,7 +1419,7 @@ contains
       errcode = 0
       if(ndims /= 3) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1425,7 +1438,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1445,7 +1458,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1466,7 +1479,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1513,7 +1526,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1528,7 +1541,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1539,7 +1552,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1551,7 +1564,7 @@ contains
       errcode = 0
       if(ndims /= 4) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1570,7 +1583,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1590,7 +1603,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1611,7 +1624,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1658,7 +1671,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1673,7 +1686,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1684,7 +1697,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1696,7 +1709,7 @@ contains
       errcode = 0
       if(ndims /= 5) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1715,7 +1728,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1735,7 +1748,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1757,7 +1770,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1808,7 +1821,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1823,7 +1836,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1834,7 +1847,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1845,7 +1858,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1864,7 +1877,7 @@ contains
       errcode = 0
       if(ndims /= 1) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1883,7 +1896,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1903,7 +1916,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1926,7 +1939,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1973,7 +1986,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -1988,7 +2001,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1999,7 +2012,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2010,7 +2023,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2029,7 +2042,7 @@ contains
       errcode = 0
       if(ndims /= 2) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2048,7 +2061,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2068,7 +2081,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2091,7 +2104,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2138,7 +2151,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2153,7 +2166,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2164,7 +2177,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2175,7 +2188,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2194,7 +2207,7 @@ contains
       errcode = 0
       if(ndims /= 3) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2213,7 +2226,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2233,7 +2246,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2256,7 +2269,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2303,7 +2316,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2318,7 +2331,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2329,7 +2342,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2340,7 +2353,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2359,7 +2372,7 @@ contains
       errcode = 0
       if(ndims /= 4) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2378,7 +2391,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2398,7 +2411,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2421,7 +2434,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2468,7 +2481,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2483,7 +2496,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2494,7 +2507,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2505,7 +2518,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2524,7 +2537,7 @@ contains
       errcode = 0
       if(ndims /= 5) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2543,7 +2556,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2563,7 +2576,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2587,7 +2600,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2634,7 +2647,7 @@ contains
       if(.not.this%sima_pio_fh%is_file_open) then
          !File isn't actually open, so throw an error
          errcode = file_not_open_err
-         errmsg = "File '"//this%sima_pio_fh%file_path//"' is not open, need to call 'open_file' first."
+         errmsg = "File '"//trim(this%sima_pio_fh%file_path)//"' is not open, need to call 'open_file' first."
          return
       end if
 
@@ -2649,7 +2662,7 @@ contains
       errcode = pio_inq_varid(pio_file_handle, varname, var_id)
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_id_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_id_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2660,7 +2673,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, xtype=nc_type, ndims=ndims)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2671,7 +2684,7 @@ contains
       !(as we cannot currently handle string-type variables):
       if(nc_type /= PIO_CHAR) then
          errcode = not_char_type_err
-         errmsg = "NetCDF Variable '"//varname//"' is not a character array.  File can be found here: "//file_path
+         errmsg = "NetCDF Variable '"//trim(varname)//"' is not a character array.  File can be found here: "//file_path
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2690,7 +2703,7 @@ contains
       errcode = 0
       if(ndims /= 6) then
          errcode = bad_var_rank_err
-         errmsg  = "Variable '"//varname//"' isn't declared with the correct number of dimensions"
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -2709,7 +2722,7 @@ contains
       errcode = pio_inquire_variable(pio_file_handle, var_id, dimids=dim_ids)
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_inq_var_info_err, errcode, errmsg)
+         call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2729,7 +2742,7 @@ contains
          errcode = pio_inq_dimlen(pio_file_handle, dim_ids(i), dim_sizes(i))
          if(errcode /= PIO_NOERR) then
             !Extract error message from PIO:
-            call get_pio_errmsg(pio_inq_dim_len_err, errcode, errmsg)
+            call get_pio_errmsg(pio_inq_dim_len_err, varname, errcode, errmsg)
 
             !Reset PIO back to original error handling method:
             call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2753,7 +2766,7 @@ contains
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
-         call get_pio_errmsg(pio_get_var_err, errcode, errmsg)
+         call get_pio_errmsg(pio_get_var_err, varname, errcode, errmsg)
 
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2769,7 +2782,7 @@ contains
       errmsg = ''
    end subroutine get_netcdf_var_char_5d
 
-   subroutine get_pio_errmsg(caller_errcode, errcode, errmsg)
+   subroutine get_pio_errmsg(caller_errcode, varname, errcode, errmsg, file_msg)
       !Set error message based off PIO error code,
       !and then reset PIO error code to caller-specified
       !error code.
@@ -2783,18 +2796,36 @@ contains
       use pio, only: PIO_NOERR
 
       !Input/output arguments:
-      integer,          intent(in)    :: caller_errcode !New error code caller wants.
-      integer,          intent(inout) :: errcode        !Error code
-      character(len=*), intent(inout) :: errmsg         !Error message
+      integer,           intent(in)    :: caller_errcode !New error code caller wants.
+      character(len=*),  intent(in)    :: varname
+      integer,           intent(inout) :: errcode        !Error code
+      character(len=*),  intent(inout) :: errmsg         !Error message
+      logical, optional, intent(in)    :: file_msg       !If true then error is for file.
 
       !Local variables:
       integer :: strerr !Error code returned if pio_strerror fails
+      character(len=256) :: pio_error
+      logical :: file_msg_flag
 
-      strerr = pio_strerror(errcode, errmsg)
+      !Check if error is for a file instead of a variable:
+      if (present(file_msg)) then
+         file_msg_flag = file_msg
+      else
+         file_msg_flag = .false.
+      end if
+
+      !Get error message from PIO:
+      strerr = pio_strerror(errcode, pio_error)
       if(strerr /= PIO_NOERR) then
          write(errmsg, *) "Failed to get error message for PIO code: ", errcode
          errcode = pio_get_msg_err
       else
+         if (file_msg_flag) then
+            write(errmsg, '(a,a,a,a)') "Error for file '", varname, "' - message: ", trim(pio_error)
+         else
+            !Variable error message
+            write(errmsg, '(a,a,a,a)') "Error for variable '", varname, "' - message: ", trim(pio_error)
+         end if
          errcode = caller_errcode
       end if
    end subroutine get_pio_errmsg
