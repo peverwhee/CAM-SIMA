@@ -1,11 +1,14 @@
 # CAM-SIMA
 Community Atmosphere Model - System for Integrated Modeling of the Atmosphere
 
+Official developer documentation for CAM-SIMA can be [found here](https://escomp.github.io/CAM-SIMA-docs/).
+
 NOTE:  Only developmental code exists at the moment.  This README will be updated once production code becomes available.
 
 ## Current code status:
 
 [![Python Unit Tests](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/python_unit_tests.yml/badge.svg)](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/python_unit_tests.yml)
+[![Fortran Unit Tests](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/fortran_unit_tests.yml/badge.svg?branch=development)](https://github.com/ESCOMP/CAM-SIMA/actions/workflows/fortran_unit_tests.yml)
 
 ## How to checkout and use CAM-SIMA:
 
