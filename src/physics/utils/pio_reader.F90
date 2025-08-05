@@ -299,7 +299,7 @@ contains
       end if
 
       !Check if variable subsetting is requested and valid:
-      call var_subset_check(var_ndims, dim_sizes, errmsg, errcode, start, count)
+      call var_subset_check(varname, var_ndims, dim_sizes, errmsg, errcode, start, count)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2169,13 +2169,13 @@ contains
       !number of output variable dimensions.
 
       !Input arguments:
-      character(len=*), intent(in) :: varname !Name of NetCDF variable being subset
-      integer, intent(in) :: var_ndims        !Number of output variable dimensions
-      integer, intent(in) :: dim_sizes(:)     !Dimension sizes for variable on file
+      character(len=*), intent(in) :: varname          !Name of NetCDF variable being subset
+      integer,          intent(in) :: var_ndims        !Number of output variable dimensions
+      integer,          intent(in) :: dim_sizes(:)     !Dimension sizes for variable on file
 
       !Output arguments:
       character(len=*), intent(out) :: errmsg !Error message
-      integer, intent(out) :: errcode !Error code
+      integer, intent(out)          :: errcode !Error code
 
       !Optional input arguments:
       integer, optional, intent(in) :: start(:) !Start indices for each dimension
@@ -2206,12 +2206,14 @@ contains
          return
       end if
 
+      !CONTINUE HERE!!!!
+
       !Check that start and count are the correct size:
-      if (size(start) /= var_ndims .or. size(count) /= var_ndims) then
-         errcode = bad_subset_size_err
-         errmsg = "Start and count arrays must be the same size as the number of variable dimensions."
-         return
-      end if
+      !if (size(start) /= var_ndims .or. size(count) /= var_ndims) then
+      !   errcode = bad_subset_size_err
+      !   errmsg = "Start and count arrays must be the same size as the number of variable dimensions."
+      !   return
+      !end if
 
       !Check that start indices are within bounds:
       !do i = 1, var_ndims
