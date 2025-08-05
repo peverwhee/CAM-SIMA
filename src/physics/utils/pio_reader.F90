@@ -9,16 +9,17 @@ module pio_reader
    public :: pio_reader_t
 
    !Error code parameters
-   integer, parameter :: pio_inq_dim_id_err      = 1
-   integer, parameter :: pio_inq_dim_len_err     = 2
-   integer, parameter :: pio_inq_var_id_err      = 3
-   integer, parameter :: pio_inq_var_info_err    = 4
-   integer, parameter :: bad_var_rank_err        = 5
-   integer, parameter :: too_high_rank_err       = 6
-   integer, parameter :: pio_get_var_err         = 7
-   integer, parameter :: not_char_type_err       = 8
-   integer, parameter :: file_not_open_err       = 9
-   integer, parameter :: pio_get_msg_err         = 10
+   integer, parameter :: pio_inq_dim_id_err       = 1
+   integer, parameter :: pio_inq_dim_len_err      = 2
+   integer, parameter :: pio_inq_var_id_err       = 3
+   integer, parameter :: pio_inq_var_info_err     = 4
+   integer, parameter :: bad_var_rank_err         = 5
+   integer, parameter :: too_high_rank_err        = 6
+   integer, parameter :: pio_get_var_err          = 7
+   integer, parameter :: not_char_type_err        = 8
+   integer, parameter :: file_not_open_err        = 9
+   integer, parameter :: pio_get_msg_err          = 10
+   integer, parameter :: mismatch_start_count_err = 11
 
    type :: file_handle_t
       logical            :: is_file_open = .false.  !Is NetCDF file currently open?
@@ -291,6 +292,14 @@ contains
 
       !Get variable dimension sizes:
       call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(var_ndims, dim_sizes, errmsg, errcode, start, count)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2151,5 +2160,73 @@ contains
       end do
 
    end subroutine get_dim_sizes
+
+   subroutine var_subset_check(varname, var_ndims, dim_sizes, errmsg, errcode, start, count)
+      !Check that the start and count arrays are
+      !either both absent or present, have the correct number
+      !of elements, have elements that are within bounds,
+      !and have element values that work with expected
+      !number of output variable dimensions.
+
+      !Input arguments:
+      character(len=*), intent(in) :: varname !Name of NetCDF variable being subset
+      integer, intent(in) :: var_ndims        !Number of output variable dimensions
+      integer, intent(in) :: dim_sizes(:)     !Dimension sizes for variable on file
+
+      !Output arguments:
+      character(len=*), intent(out) :: errmsg !Error message
+      integer, intent(out) :: errcode !Error code
+
+      !Optional input arguments:
+      integer, optional, intent(in) :: start(:) !Start indices for each dimension
+      integer, optional, intent(in) :: count(:) !Number of elements to read for each dimension
+
+      integer :: i !Loop control variable
+
+      !Initialize error code and message:
+      errcode = 0
+      errmsg  = ''
+
+      !If both start and count are not present,
+      !then return with no error:
+      if (.not. present(start) .and. .not. present(count)) then
+         return
+      end if
+
+      !At this point, either start or count
+      !must be present, so check that both
+      !are present:
+      if (.not. present(start)) then
+         errcode = mismatch_start_count_err
+         errmsg = "Variable '"//varname//"' is being subsetted with 'count', but no 'start' was provided."
+         return
+      else if (.not. present(count)) then
+         errcode = mismatch_start_count_err
+         errmsg = "Variable '"//varname//"' is being subsetted with 'start', but no 'count' was provided."
+         return
+      end if
+
+      !Check that start and count are the correct size:
+      if (size(start) /= var_ndims .or. size(count) /= var_ndims) then
+         errcode = bad_subset_size_err
+         errmsg = "Start and count arrays must be the same size as the number of variable dimensions."
+         return
+      end if
+
+      !Check that start indices are within bounds:
+      !do i = 1, var_ndims
+      !   if (start(i) < 0 .or. start(i) >= dim_sizes(i)) then
+      !      errcode = bad_start_index_err
+      !      errmsg = "Start index for dimension "//trim(adjustl(i))//" is out of bounds."
+      !      return
+      !   end if
+
+      !   if (count(i) < 1 .or. start(i) + count(i) > dim_sizes(i)) then
+      !      errcode = bad_count_index_err
+      !      errmsg = "Count index for dimension "//trim(adjustl(i))//" is out of bounds."
+      !      return
+      !   end if
+      !end do
+   end subroutine var_subset_check
 
 end module pio_reader

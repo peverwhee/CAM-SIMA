@@ -5,6 +5,7 @@ on:
     branches:
       - development
       - main
+      - pio_reader_subset
   pull_request:
   workflow_dispatch:
 
