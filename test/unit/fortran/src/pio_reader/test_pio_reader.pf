@@ -1391,7 +1391,7 @@ subroutine test_pio_reader_bad_num_start_elements()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Attempt to read variable with bad rank:
-    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1, 1/))
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1, 1/), count=(/2/))
 
     ! Check that the correct error was raised:
     @assertNotEqual(0, errcode)
