@@ -2209,15 +2209,23 @@ contains
          return
       end if
 
-      !Check that start and count have the correct number of elements:
+      !Check that start has the correct number of elements:
       if (size(start) /= size(dim_sizes)) then
          errcode = bad_subset_num_elem_err
          write(errmsg, '(3a,i0,a,i0,a)') "The number of elements in the 'start' array for variable '", &
                           trim(varname), "' does not match the number of dimensions.  Expected ", &
-                          size(dim_sizes), " elements, but got", size(start), "."
+                          size(dim_sizes), " elements, but got ", size(start), "."
          return
       end if
 
+      !Check that count has the correct number of elements:
+      if (size(count) /= size(dim_sizes)) then
+         errcode = bad_subset_num_elem_err
+         write(errmsg, '(3a,i0,a,i0,a)') "The number of elements in the 'count' array for variable '", &
+                          trim(varname), "' does not match the number of dimensions.  Expected ", &
+                          size(dim_sizes), " elements, but got ", size(count), "."
+         return
+      end if
 
       !Check that start and count are the correct size:
       !if (size(start) /= var_ndims .or. size(count) /= var_ndims) then
