@@ -19,7 +19,10 @@ module pio_reader
    integer, parameter :: not_char_type_err        = 8
    integer, parameter :: file_not_open_err        = 9
    integer, parameter :: pio_get_msg_err          = 10
+
+   !Subsetting error codes
    integer, parameter :: mismatch_start_count_err = 11
+   integer, parameter :: bad_subset_num_elem_err  = 12
 
    type :: file_handle_t
       logical            :: is_file_open = .false.  !Is NetCDF file currently open?
@@ -2206,7 +2209,15 @@ contains
          return
       end if
 
-      !CONTINUE HERE!!!!
+      !Check that start and count have the correct number of elements:
+      if (size(start) /= size(dim_sizes)) then
+         errcode = bad_subset_num_elem_err
+         write(errmsg, '(3a,i0,a,i0,a)') "The number of elements in the 'start' array for variable '", &
+                          trim(varname), "' does not match the number of dimensions.  Expected ", &
+                          size(dim_sizes), " elements, but got", size(start), "."
+         return
+      end if
+
 
       !Check that start and count are the correct size:
       !if (size(start) /= var_ndims .or. size(count) /= var_ndims) then

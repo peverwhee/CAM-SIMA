@@ -1353,6 +1353,58 @@ subroutine test_pio_reader_missing_count_argument()
 
 end subroutine test_pio_reader_missing_count_argument
 
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_bad_num_start_elements()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a variable with
+    ! a "start" argument that has an incorrect number of elements.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    integer, allocatable :: pressure(:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+     "The number of elements in the 'start' array for variable 'pressure' does not match the number of dimensions.  Expected 1 elements, but got 2."
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read variable with bad rank:
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1, 1/))
+
+    ! Check that the correct error was raised:
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_bad_num_start_elements
+
+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 @test
