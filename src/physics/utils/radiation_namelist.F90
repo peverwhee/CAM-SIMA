@@ -41,8 +41,9 @@ contains
     use spmd_utils,     only: mpicom
     use cam_logfile,    only: iulog
     use cam_abortutils, only: endrun
-    use spmd_utils,     only: masterproc
+    use spmd_utils,     only: masterproc, masterprocid
     use time_manager,   only: get_step_size
+    use shr_kind_mod,   only: shr_kind_cm
 
     !-----------------------------------------------------------------------
     !
@@ -55,7 +56,7 @@ contains
 
     ! Local variables
     integer                      :: unitn, ierr
-    character(len=*), parameter  :: subname = 'radiation_readnl'
+    character(len=*), parameter  :: sub = 'radiation_readnl'
     character(len=shr_kind_cm)   :: errmsg
     integer                      :: dtime
 
@@ -70,29 +71,29 @@ contains
        if (ierr == 0) then
           read(unitn, radiation_nl, iostat=ierr, iomsg=errmsg)
           if (ierr /= 0) then
-             call endrun(subname // ':: ERROR reading namelist:' // errmsg)
+             call endrun(sub // ':: ERROR reading namelist:' // errmsg)
           end if
        end if
        close(unitn)
     end if
 
     ! Broadcast namelist variable
-    call mpi_bcast(use_rad_uniform_angle, 1, mpi_logical, masterproc, mpicom, ierr)
+    call mpi_bcast(use_rad_uniform_angle, 1, mpi_logical, masterprocid, mpicom, ierr)
     if (ierr /= 0) then
        call endrun(sub//": FATAL: mpi_bcast: use_rad_uniform_angle",      &
             file=__FILE__, line=__LINE__)
     end if
-    call mpi_bcast(iradsw, 1, mpi_integer, masterproc, mpicom, ierr)
+    call mpi_bcast(iradsw, 1, mpi_integer, masterprocid, mpicom, ierr)
     if (ierr /= 0) then
        call endrun(sub//": FATAL: mpi_bcast: iradsw",                     &
             file=__FILE__, line=__LINE__)
     end if
-    call mpi_bcast(iradlw, 1, mpi_integer, masterproc, mpicom, ierr)
+    call mpi_bcast(iradlw, 1, mpi_integer, masterprocid, mpicom, ierr)
     if (ierr /= 0) then
        call endrun(sub//": FATAL: mpi_bcast: iradlw",                     &
             file=__FILE__, line=__LINE__)
     end if
-    call mpi_bcast(irad_always, 1, mpi_integer, masterproc, mpicom, ierr)
+    call mpi_bcast(irad_always, 1, mpi_integer, masterprocid, mpicom, ierr)
     if (ierr /= 0) then
        call endrun(sub//": FATAL: mpi_bcast: irad_always",                &
             file=__FILE__, line=__LINE__)
@@ -103,16 +104,16 @@ contains
             file=__FILE__, line=__LINE__)
     end if
 
-    if (use_rad_uniform_angle .and. rad_uniform_angle == -99._r8) then
+    if (use_rad_uniform_angle .and. rad_uniform_angle == -99._kind_phys) then
        call endrun(sub//': ERROR - use_rad_uniform_angle is set to .true,' &
                       //' but rad_uniform_angle is not set ')
     end if
 
     ! Convert iradsw, iradlw and irad_always from hours to timesteps if necessary
     dtime  = get_step_size()
-    if (iradsw      < 0) iradsw      = nint((-iradsw     *3600._r8)/dtime)
-    if (iradlw      < 0) iradlw      = nint((-iradlw     *3600._r8)/dtime)
-    if (irad_always < 0) irad_always = nint((-irad_always*3600._r8)/dtime)
+    if (iradsw      < 0) iradsw      = nint((-iradsw     *3600._kind_phys)/dtime)
+    if (iradlw      < 0) iradlw      = nint((-iradlw     *3600._kind_phys)/dtime)
+    if (irad_always < 0) irad_always = nint((-irad_always*3600._kind_phys)/dtime)
 
     !-----------------------------------------------------------------------
     ! Print runtime options to log.
@@ -120,7 +121,7 @@ contains
 
     if (masterproc) then
        write(iulog,*) 'RRTMGP radiation scheme parameters:'
-       write(iulog,10) iradsw, iradlw, irad_always, use_rad_dt_cosz
+       write(iulog,10) iradsw, iradlw, irad_always, use_rad_uniform_angle
     end if
 
 10 format('  Frequency (timesteps) of Shortwave radiation calc:  ',i5/, &

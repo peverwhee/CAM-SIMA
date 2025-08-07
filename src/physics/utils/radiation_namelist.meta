@@ -18,7 +18,7 @@
   dimensions = ()
   protected = True
 [ irad_always ]
-  standard_name = number_of_timesteps_to_force_radiation_calculation_after_initialization
+  standard_name = number_of_timesteps_to_force_radiation_calculation_after_initialization_namelist_parameter
   units = count
   type = integer
   dimensions = ()

@@ -306,7 +306,7 @@ class VarBase:
                 raise TypeError(emsg.format(var_name, self.var_type))
             # end if
         elif init_val:
-            outfile.write(f"if ({init_var}) then", indent)
+            outfile.write(f"if ({init_var} .and. .not. is_initialized('{self.standard_name}', error_on_not_found=.false.)) then", indent)
             outfile.write(f"{var_name} = {init_val}", indent+1)
             if self.initial_val_vars and self.initial_val_vars.issubset(physconst_vars):
                 outfile.write(f"call mark_as_initialized('{self.standard_name}')", indent+1)

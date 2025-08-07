@@ -34,6 +34,7 @@
     <use module="runtime_obj" reference="unset_int"/>
     <use module="runtime_obj" reference="unset_real"/>
     <use module="phys_vars_init_check" reference="mark_as_initialized"/>
+    <use module="phys_vars_init_check" reference="is_initialized"/>
     <use module="physconst" reference="cpair"/>
     <use module="physconst" reference="rair"/>
     <use module="physconst" reference="mwdry"/>
@@ -473,6 +474,16 @@
               units="1" type="real" kind="kind_phys">
       <long_name>fractional calendar day at end of next timestep</long_name>
     </variable>
+    <variable local_name="nextsw_cday"
+              standard_name="next_calendar_day_to_perform_shortwave_radiation_for_surface_models"
+              units="days" type="real" kind="kind_phys">
+      <long_name>fractional calendar day at which to next perform shortwave radiation</long_name>
+    </variable>
+    <variable local_name="radiation_offset"
+	      standard_name="number_of_seconds_until_next_shortwave_radiation_timestep"
+              units="s" type = "integer">
+      <long_name>number of seconds until next shortwave radiation timestep</long_name>
+    </variable>
     <!-- Error handling variables -->
     <variable local_name="errcode"
               standard_name="ccpp_error_code"
@@ -584,6 +595,46 @@
               units="kg kg-1" type="real" constituent="true">
       <long_name>graupel mass mixing ratio with respect to moist air plus all airborne condensates</long_name>
       <ic_file_input_names>GRAUQM cnst_GRAUQM</ic_file_input_names>
+    </variable>
+    <variable local_name="H2O"
+	      standard_name="H2O"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>Q cnst_Q</ic_file_input_names>
+    </variable>
+    <variable local_name="CO2"
+	      standard_name="CO2"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>CO2 cnst_CO2</ic_file_input_names>
+    </variable>
+    <variable local_name="N2O"
+	      standard_name="N2O"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>N2O cnst_N2O</ic_file_input_names>
+    </variable>
+    <variable local_name="CH4"
+	      standard_name="CH4"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>CH4 cnst_CH4</ic_file_input_names>
+    </variable>
+    <variable local_name="CFC12"
+	      standard_name="CFC12"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>CFC12 cnst_CFC12</ic_file_input_names>
+    </variable>
+    <variable local_name="CFC11"
+	      standard_name="CFC11"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>CFC11STAR pbuf_CFC11STAR</ic_file_input_names>
+    </variable>
+    <variable local_name="O2"
+	      standard_name="O2"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>O2 pbuf_O2</ic_file_input_names>
+    </variable>
+    <variable local_name="O3"
+	      standard_name="O3"
+	      units="kg kg-1" type="real" constituent="true">
+      <ic_file_input_names>ozone pbuf_ozone</ic_file_input_names>
     </variable>
 
     <!-- cam_in Variables -->
@@ -874,7 +925,27 @@
     </variable>
     <variable local_name="nlwgpts"
               standard_name="number_of_longwave_g_point_intervals"
-              units="count" type="integer" kind="kind_phys">
+              units="count" type="integer">
+      <initial_value>-1</initial_value>
+    </variable>
+    <variable local_name="nswgpts"
+	      standard_name="number_of_shortwave_g_point_intervals"
+	      units="count" type="integer">
+      <initial_value>-1</initial_value>
+    </variable>
+    <variable local_name="nlay"
+	      standard_name="number_of_vertical_layers_in_rrtmgp"
+	      units="count" type="integer">
+      <initial_value>-1</initial_value>
+    </variable>
+    <variable local_name="nlayp"
+	      standard_name="number_of_vertical_layers_in_rrtmgp_plus_one"
+	      units="count" type="integer">
+      <initial_value>-1</initial_value>
+    </variable>
+    <variable local_name="nday"
+	      standard_name="daytime_points_dimension"
+	      units="count" type="integer">
       <initial_value>-1</initial_value>
     </variable>
     <variable local_name="qrs"
@@ -946,6 +1017,13 @@
               allocatable="allocatable">
       <dimensions>horizontal_dimension</dimensions>
       <ic_file_input_names>aldif cam_in_aldif</ic_file_input_names>
+    </variable>
+    <variable local_name="flwds"
+              standard_name="longwave_downward_radiative_flux_at_surface"
+              units="W m-2" type="real" kind="kind_phys"
+              allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>flwds cam_out_flwds</ic_file_input_names>
     </variable>
   </file>
 </registry>

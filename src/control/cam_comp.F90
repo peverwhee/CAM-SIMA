@@ -28,7 +28,7 @@ module cam_comp
    use camsrfexch,                only: cam_out_t, cam_in_t
    use physics_types,             only: phys_state, phys_tend
    use physics_types,             only: dtime_phys
-   use physics_types,             only: calday
+   use physics_types,             only: calday, next_calday, radiation_offset, nextsw_cday
    use physics_types,             only: is_first_timestep, nstep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
@@ -189,8 +189,12 @@ CONTAINS
       ! Get current fractional calendar day. Needs to be updated at every timestep.
       calday = get_curr_calday()
       next_calday = get_curr_calday(offset=int(get_step_size()))
+      radiation_offset = 0
+      nextsw_cday = next_calday
       call mark_as_initialized('fractional_calendar_days_on_end_of_current_timestep')
       call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
+      call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
+      call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -302,6 +306,7 @@ CONTAINS
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use ccpp_kinds,                only: kind_phys
       use musica_ccpp_dependencies,  only: set_initial_musica_concentrations
+      use radiation_namelist,        only: use_rad_uniform_angle, rad_uniform_angle
 
       real(kind_phys), pointer :: constituents_array(:,:,:)
       type(ccpp_constituent_prop_ptr_t), pointer :: constituent_properties(:)
@@ -349,6 +354,10 @@ CONTAINS
       !----------------------------------------------------------
       !
       call phys_timestep_init()
+
+      ! Call share code to get relevant calendar days
+      nextsw_cday = get_curr_calday(offset=radiation_offset)
+      next_calday = get_curr_calday(offset=int(get_step_size()))
 
    end subroutine cam_timestep_init
    !
