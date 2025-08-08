@@ -2264,7 +2264,7 @@ contains
                      trim(varname), "' is out of bounds.  Expected 1 to ", &
                      dim_sizes(i), " but got ", count(i), "."
                return
-            else if (start(i) + count(i) > dim_sizes(i))) then
+            else if (start(i) + count(i) > dim_sizes(i)) then
                errcode = bad_subset_range_err
                write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
                      "Element ", i, " of 'start' + 'count' for variable '", &
