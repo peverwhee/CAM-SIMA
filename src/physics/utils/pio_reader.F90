@@ -23,6 +23,7 @@ module pio_reader
    !Subsetting error codes
    integer, parameter :: mismatch_start_count_err = 11
    integer, parameter :: bad_subset_num_elem_err  = 12
+   integer, parameter :: bad_subset_range_err     = 13
 
    type :: file_handle_t
       logical            :: is_file_open = .false.  !Is NetCDF file currently open?
@@ -2184,7 +2185,9 @@ contains
       integer, optional, intent(in) :: start(:) !Start indices for each dimension
       integer, optional, intent(in) :: count(:) !Number of elements to read for each dimension
 
-      integer :: i !Loop control variable
+      !Local variables:
+      integer :: file_var_dim_num !Number of dimensions for variable on file
+      integer :: i                !Loop control variable
 
       !Initialize error code and message:
       errcode = 0
@@ -2210,44 +2213,38 @@ contains
       end if
 
       !Check that start has the correct number of elements:
-      if (size(start) /= size(dim_sizes)) then
+      file_var_dim_num = size(dim_sizes)
+      if (size(start) /= file_var_dim_num) then
          errcode = bad_subset_num_elem_err
-         write(errmsg, '(3a,i0,a,i0,a)') "The number of elements in the 'start' array for variable '", &
-                          trim(varname), "' does not match the number of dimensions.  Expected ", &
-                          size(dim_sizes), " elements, but got ", size(start), "."
+         write(errmsg, '(3a,i0,a,i0,a)') &
+               "The number of elements in the 'start' array for variable '", &
+               trim(varname), "' does not match the number of dimensions.  Expected ", &
+               file_var_dim_num, " elements, but got ", size(start), "."
          return
       end if
 
       !Check that count has the correct number of elements:
-      if (size(count) /= size(dim_sizes)) then
+      if (size(count) /= file_var_dim_num) then
          errcode = bad_subset_num_elem_err
-         write(errmsg, '(3a,i0,a,i0,a)') "The number of elements in the 'count' array for variable '", &
-                          trim(varname), "' does not match the number of dimensions.  Expected ", &
-                          size(dim_sizes), " elements, but got ", size(count), "."
+         write(errmsg, '(3a,i0,a,i0,a)') &
+               "The number of elements in the 'count' array for variable '", &
+               trim(varname), "' does not match the number of dimensions.  Expected ", &
+               file_var_dim_num, " elements, but got ", size(count), "."
          return
       end if
 
-      !Check that start and count are the correct size:
-      !if (size(start) /= var_ndims .or. size(count) /= var_ndims) then
-      !   errcode = bad_subset_size_err
-      !   errmsg = "Start and count arrays must be the same size as the number of variable dimensions."
-      !   return
-      !end if
-
       !Check that start indices are within bounds:
-      !do i = 1, var_ndims
-      !   if (start(i) < 0 .or. start(i) >= dim_sizes(i)) then
-      !      errcode = bad_start_index_err
-      !      errmsg = "Start index for dimension "//trim(adjustl(i))//" is out of bounds."
-      !      return
-      !   end if
+      do i = 1, file_var_dim_num
+         if (start(i) < 0 .or. start(i) > dim_sizes(i)-1) then
+            errcode = bad_subset_range_err
+            write(errmsg, '(a,i0,3a,i0,a,i0)') &
+                  "Element ", i, " of 'start' for variable '", &
+                  trim(varname), "' is out of bounds.  Expected 0 to ", &
+                  dim_sizes(i), " but got ", start(i), "."
+            return
+         end if
+      end do
 
-      !   if (count(i) < 1 .or. start(i) + count(i) > dim_sizes(i)) then
-      !      errcode = bad_count_index_err
-      !      errmsg = "Count index for dimension "//trim(adjustl(i))//" is out of bounds."
-      !      return
-      !   end if
-      !end do
    end subroutine var_subset_check
 
 end module pio_reader
