@@ -1516,6 +1516,68 @@ subroutine test_pio_reader_bad_start_element_range()
 
 end subroutine test_pio_reader_bad_start_element_range
 
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_bad_count_element_range()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a variable with
+    ! a "count" argument that has an element out of range.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    integer, allocatable :: pressure(:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error messages:
+    character(len=*), parameter :: expected_err_msg_neg = &
+     "Element 1 of 'count' for variable 'pressure' is out of bounds.  Expected 1 to 59 but got -6."
+
+    character(len=*), parameter :: expected_err_msg_huge = &
+     "Element 1 of 'start' + 'count' for variable 'pressure' is out of bounds.  Expected 1 to 59 but got 60."
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to read variable with negative start element:
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/0/), count=(/-6/))
+
+    ! Check that the correct error was raised:
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg_neg, trim(errmsg))
+
+    ! Next attempt to read variable with too-large start element:
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1/), count=(/59/))
+
+    ! Check that the correct error was raised:
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg_huge, trim(errmsg))
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_bad_count_element_range
+
+
 !++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 @test

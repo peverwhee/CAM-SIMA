@@ -2241,7 +2241,7 @@ contains
 
       !Check that start indices are within bounds:
       do i = 1, file_var_dim_num
-         if (start(i) < 0 .or. start(i) >= dim_sizes(i)) then
+         if ((start(i) < 0) .or. (start(i) >= dim_sizes(i))) then
             errcode = bad_subset_range_err
             write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
                   "Element ", i, " of 'start' for variable '", &
@@ -2250,6 +2250,30 @@ contains
             return
          end if
       end do
+
+      !Check if count has the same number of elements as the output variable:
+      if (size(count) == var_ndims) then
+         !If so, then check that count is positive and
+         !start + count is within bounds
+         !for each dimension:
+         do i = 1, file_var_dim_num
+            if (count(i) < 0) then
+               errcode = bad_subset_range_err
+               write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
+                     "Element ", i, " of 'count' for variable '", &
+                     trim(varname), "' is out of bounds.  Expected 1 to ", &
+                     dim_sizes(i), " but got ", count(i), "."
+               return
+            else if (start(i) + count(i) > dim_sizes(i))) then
+               errcode = bad_subset_range_err
+               write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
+                     "Element ", i, " of 'start' + 'count' for variable '", &
+                     trim(varname), "' is out of bounds.  Expected 1 to ", &
+                     dim_sizes(i), " but got ", start(i) + count(i), "."
+               return
+            end if
+         end do
+      end if
 
    end subroutine var_subset_check
 
