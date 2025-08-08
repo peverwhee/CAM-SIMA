@@ -2235,12 +2235,12 @@ contains
 
       !Check that start indices are within bounds:
       do i = 1, file_var_dim_num
-         if (start(i) < 0 .or. start(i) > dim_sizes(i)-1) then
+         if (start(i) < 0 .or. start(i) >= dim_sizes(i)) then
             errcode = bad_subset_range_err
-            write(errmsg, '(a,i0,3a,i0,a,i0)') &
+            write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
                   "Element ", i, " of 'start' for variable '", &
                   trim(varname), "' is out of bounds.  Expected 0 to ", &
-                  dim_sizes(i), " but got ", start(i), "."
+                  dim_sizes(i)-1, " but got ", start(i), "."
             return
          end if
       end do
