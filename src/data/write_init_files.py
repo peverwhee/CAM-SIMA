@@ -33,6 +33,7 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'number_of_mpi_tasks'}
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
+_OUTPUT_TYPES = set(['out', 'inout'])
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -131,7 +132,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    host_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -174,12 +175,12 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # end for
 
         # Write public parameters:
-        retvals = write_ic_params(outfile, host_vars, ic_names, registry_constituents)
+        retvals = write_ic_params(outfile, in_vars, ic_names, registry_constituents)
         ic_names, ic_max_len, stdname_max_len = retvals
 
         # Write initial condition arrays:
         write_ic_arrays(outfile, ic_names, ic_max_len,
-                        stdname_max_len, host_vars, registry_constituents)
+                        stdname_max_len, in_vars, registry_constituents)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -234,18 +235,19 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Grab the host dictionary from the database
         host_dict = cap_database.host_model_dict()
 
-        # Collect imported host variables
-        host_imports = collect_host_var_imports(host_vars, host_dict, constituent_set)
-
+        # Collect imported host variables for physics read
+        host_imports = collect_host_var_imports(in_vars, host_dict, constituent_set)
         # Write physics_read_data subroutine:
-        write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
+        write_phys_read_subroutine(outfile, host_dict, in_vars, host_imports,
                                    phys_check_fname_str, constituent_set,
                                    vars_init_value)
 
         outfile.blank_line()
 
+        # Collect imported host variables for physics check
+        host_imports = collect_host_var_imports(out_vars, host_dict, constituent_set)
         # Write physics_check_data subroutine:
-        write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
+        write_phys_check_subroutine(outfile, host_dict, out_vars, host_imports,
                                     phys_check_fname_str, constituent_set)
 
     # --------------------------------------
@@ -315,7 +317,8 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
 
     # Dictionary of all 'in' and 'inout' suite variables.
     # Key is standard name, value is host-model or constituent variable
-    req_vars = {}
+    in_vars = {}
+    out_vars = {}
     missing_vars = set()
     constituent_vars = set()
     retmsg = ""
@@ -330,22 +333,31 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
             intent = cvar.get_prop_value('intent')
             is_const = cvar.get_prop_value('advected') or cvar.get_prop_value('constituent')
             if ((intent in _INPUT_TYPES) and
-                (stdname not in req_vars) and
+                (stdname not in in_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
                     #Add variable to constituent set:
                     constituent_vars.add(stdname)
                     #Add variable to required variable list if it's not a registry constituent
                     if stdname not in registry_constituents:
-                        req_vars[stdname] = cvar
+                        in_vars[stdname] = cvar
                     # end if
                 else:
                     # We need to work with the host model version of this variable
                     missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          req_vars)
+                                                          in_vars)
                     missing_vars.update(missing)
                 # end if
-            # end if (do not include output variables)
+            # end if (only input variables)
+            if ((intent in _OUTPUT_TYPES) and
+                  (stdname not in out_vars) and
+                  (stdname not in _EXCLUDED_STDNAMES)):
+                if not is_const:
+                    missing = _find_and_add_host_variable(stdname, host_dict,
+                                                          out_vars)
+                    # do nothing with missing variables
+                # end if
+            # end if (only output variables)
         # end for (loop over call list)
     # end for (loop over phases)
 
@@ -354,7 +366,7 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
         retmsg = f"Error: Missing required host variables: {mvlist}"
     # end if
     # Return the required variables as a list
-    return list(req_vars.values()), constituent_vars, retmsg
+    return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
 
 ##########################
 #FORTRAN WRITING FUNCTIONS
