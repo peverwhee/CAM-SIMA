@@ -30,6 +30,20 @@
   type = real
   kind = kind_phys
   intent = in
+[ cool_cat_for_each_const ]
+  standard_name = super_cool_cat_every_const
+  units = kg kg-1 s-1
+  dimensions = (horizontal_loop_extent, number_of_ccpp_constituents)
+  type = real
+  kind = kind_phys
+  intent = inout
+[ cool_cat_default_for_each_const ]
+  standard_name = super_cool_cat_with_default_every_const
+  units = kg kg-1 s-1
+  dimensions = (horizontal_loop_extent, number_of_ccpp_constituents)
+  type = real
+  kind = kind_phys
+  intent = in
 [ timestep ]
   standard_name = timestep_for_physics
   long_name = time step
@@ -38,12 +52,6 @@
   type = real
   kind = kind_phys
   intent = in
-[ ptend ]
-  standard_name = tendency_of_peverwhee
-  units = s-1
-  dimensions = (horizontal_loop_extent)
-  type = real | kind = kind_phys
-  intent = out
 [ errmsg ]
   standard_name = ccpp_error_message
   long_name = Error message for error handling in CCPP

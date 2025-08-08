@@ -33,6 +33,7 @@ _EXCLUDED_STDNAMES = {'suite_name', 'suite_part',
                           'number_of_mpi_tasks'}
 # Variable input types
 _INPUT_TYPES = set(['in', 'inout'])
+_OUTPUT_TYPES = set(['out', 'inout'])
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -131,7 +132,7 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
 
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    host_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
+    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database, registry_constituents)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -174,12 +175,12 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # end for
 
         # Write public parameters:
-        retvals = write_ic_params(outfile, host_vars, ic_names, registry_constituents)
+        retvals = write_ic_params(outfile, in_vars, ic_names, registry_constituents)
         ic_names, ic_max_len, stdname_max_len = retvals
 
         # Write initial condition arrays:
         write_ic_arrays(outfile, ic_names, ic_max_len,
-                        stdname_max_len, host_vars, registry_constituents)
+                        stdname_max_len, in_vars, registry_constituents)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -234,18 +235,19 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         # Grab the host dictionary from the database
         host_dict = cap_database.host_model_dict()
 
-        # Collect imported host variables
-        host_imports = collect_host_var_imports(host_vars, host_dict, constituent_set)
-
+        # Collect imported host variables for physics read
+        host_imports = collect_host_var_imports(in_vars, host_dict, constituent_set)
         # Write physics_read_data subroutine:
-        write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
+        write_phys_read_subroutine(outfile, host_dict, in_vars, host_imports,
                                    phys_check_fname_str, constituent_set,
                                    vars_init_value)
 
         outfile.blank_line()
 
+        # Collect imported host variables for physics check
+        host_imports = collect_host_var_imports(out_vars, host_dict, constituent_set)
         # Write physics_check_data subroutine:
-        write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
+        write_phys_check_subroutine(outfile, host_dict, out_vars, host_imports,
                                     phys_check_fname_str, constituent_set)
 
     # --------------------------------------
@@ -315,7 +317,8 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
 
     # Dictionary of all 'in' and 'inout' suite variables.
     # Key is standard name, value is host-model or constituent variable
-    req_vars = {}
+    in_vars = {}
+    out_vars = {}
     missing_vars = set()
     constituent_vars = set()
     retmsg = ""
@@ -330,22 +333,31 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
             intent = cvar.get_prop_value('intent')
             is_const = cvar.get_prop_value('advected') or cvar.get_prop_value('constituent')
             if ((intent in _INPUT_TYPES) and
-                (stdname not in req_vars) and
+                (stdname not in in_vars) and
                 (stdname not in _EXCLUDED_STDNAMES)):
                 if is_const:
                     #Add variable to constituent set:
                     constituent_vars.add(stdname)
                     #Add variable to required variable list if it's not a registry constituent
                     if stdname not in registry_constituents:
-                        req_vars[stdname] = cvar
+                        in_vars[stdname] = cvar
                     # end if
                 else:
                     # We need to work with the host model version of this variable
                     missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          req_vars)
+                                                          in_vars)
                     missing_vars.update(missing)
                 # end if
-            # end if (do not include output variables)
+            # end if (only input variables)
+            if ((intent in _OUTPUT_TYPES) and
+                  (stdname not in out_vars) and
+                  (stdname not in _EXCLUDED_STDNAMES)):
+                if not is_const:
+                    missing = _find_and_add_host_variable(stdname, host_dict,
+                                                          out_vars)
+                    # do nothing with missing variables
+                # end if
+            # end if (only output variables)
         # end for (loop over call list)
     # end for (loop over phases)
 
@@ -354,7 +366,7 @@ def gather_ccpp_req_vars(cap_database, registry_constituents):
         retmsg = f"Error: Missing required host variables: {mvlist}"
     # end if
     # Return the required variables as a list
-    return list(req_vars.values()), constituent_vars, retmsg
+    return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
 
 ##########################
 #FORTRAN WRITING FUNCTIONS
@@ -739,14 +751,21 @@ def get_dimension_info(hvar):
        - The local variable name of the vertical dimension (or None)
        - True if <hvar> has one dimension which is a horizontal dimension or
             if <hvar> has two dimensions (horizontal and vertical)
+       - Flag if any dimensions are number_of_ccpp_constituents and needs
+            reading separate variables by constituent and reassembled into
+            host model indices.
     """
     vdim_name = None
     legal_dims = False
     fail_reason = ""
+
     dims = hvar.get_dimensions()
     levnm = hvar.has_vertical_dimension()
+    has_constituent_dim = any('number_of_ccpp_constituents' in dim for dim in dims)
+
     # <hvar> is only 'legal' for 2 or 3 dimensional fields (i.e., 1 or 2
-    #    dimensional variables). The second dimension must be vertical.
+    #    dimensional variables).
+    # The second dimension must either be vertical or number of constituents.
     # XXgoldyXX: If we ever need to read scalars, it would have to be
     #            done using global attributes, not 'infld'.
     ldims = len(dims)
@@ -758,7 +777,17 @@ def get_dimension_info(hvar):
         fail_reason += f"{suff}{lname} has no horizontal dimension"
         suff = "; "
     # end if
-    if (ldims > 2) or ((ldims > 1) and (not levnm)):
+
+    if has_constituent_dim:
+        # A special case where any dimensions include number_of_ccpp_constituents,
+        # in this case the variable needs to be suffixed by an underscore plus the constituent name
+        # and read and reassembled separately into host model constituent indices
+        # based on constituent name.
+        # This case will be handled separately.
+        legal_dims = True
+    elif (ldims > 2) or ((ldims > 1) and (not levnm)):
+        # The regular case where the second dimension must be vertical,
+        # and higher dimensions are unsupported.
         legal_dims = False
         unsupp = []
         for dim in dims:
@@ -785,6 +814,7 @@ def get_dimension_info(hvar):
         # end if
         suff = "; "
     # end if
+
     if legal_dims and levnm:
         # <hvar> should be legal, find the correct local name for the
         #    vertical dimension
@@ -808,7 +838,8 @@ def get_dimension_info(hvar):
             raise ValueError(f"Vertical dimension, '{levnm}', not found")
         # end if
     # end if
-    return vdim_name, legal_dims, fail_reason
+
+    return vdim_name, legal_dims, fail_reason, has_constituent_dim
 
 def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                                phys_check_fname_str, constituent_set,
@@ -850,7 +881,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
-        levnm, call_read_field, reason = get_dimension_info(hvar)
+        levnm, call_read_field, reason, has_constituent_read = get_dimension_info(hvar)
         if hvar.get_prop_value('protected'):
             call_read_field = False
             if reason:
@@ -860,14 +891,23 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
             # end if
             lvar = hvar.get_prop_value('local_name')
             reason += f"{suff}{lvar} is a protected variable"
+        # end if
+
         # Set "read_field" call string:
         if call_read_field:
-            # Replace vertical dimension with local name
-            call_str = "call read_field(file, " +                             \
-                       f"'{var_stdname}', input_var_names(:,name_idx), "
+            if has_constituent_read:
+                # Special case for constituent-dimension variables.
+                call_str = f"call read_constituent_dimensioned_field(const_props, file, '{var_stdname}', input_var_names(:,name_idx), "
+            else:
+                # Replace vertical dimension with local name
+                call_str = "call read_field(file, " +                             \
+                           f"'{var_stdname}', input_var_names(:,name_idx), "
+            # end if
+
             if levnm is not None:
                 call_str += f"'{levnm}', "
             # end if
+
             err_on_not_found_string = ""
             if var_stdname in vars_init_value:
                 # if initial value is available, do not throw error when not found in initial condition file.
@@ -903,7 +943,8 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
                  ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
                  ["physics_data", ["read_field", "find_input_name_idx",
                                    "no_exist_idx", "init_mark_idx",
-                                   "prot_no_init_idx", "const_idx"]],
+                                   "prot_no_init_idx", "const_idx",
+                                   "read_constituent_dimensioned_field"]],
                  ["cam_ccpp_cap", ["ccpp_physics_suite_variables", 
                                    "cam_constituents_array", 
                                    "cam_model_const_properties"]],
@@ -967,8 +1008,13 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("logical                    :: use_init_variables", 2)
     outfile.blank_line()
 
+    # Prepare constituent properties pointer for later usage:
+    outfile.comment("Get constituent properties pointer:", 2)
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
     # Initialize variables:
-    outfile.comment("Initalize missing and non-initialized variables strings:",
+    outfile.comment("Initialize missing and non-initialized variables strings:",
                     2)
     outfile.write("missing_required_vars = ' '", 2)
     outfile.write("protected_non_init_vars = ' '", 2)
@@ -1103,7 +1149,6 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     # Read in constituent data
     outfile.comment("Read in constituent variables if not using init variables", 2)
     outfile.write("field_data_ptr => cam_constituents_array()", 2)
-    outfile.write("const_props => cam_model_const_properties()", 2)
     outfile.blank_line()
     outfile.comment("Iterate over all registered constituents", 2)
     outfile.write("do constituent_idx = 1, size(const_props)", 2)
@@ -1138,7 +1183,7 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("call const_props(constituent_idx)%minimum(constituent_min_value, constituent_errflg, constituent_errmsg)", 5)
     outfile.write("field_data_ptr(:,:,constituent_idx) = constituent_min_value", 5)
     outfile.write("if (masterproc) then", 5)
-    outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured.  Setting to 0.'", 6)
+    outfile.write("write(iulog,*) 'Constituent ', trim(std_name), ' default value not configured. Setting to min value of ', constituent_min_value", 6)
     outfile.write("end if", 5)
     outfile.write("end if", 4)
     outfile.write("end if", 3)
@@ -1191,7 +1236,12 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         call_string_key = f"case ('{var_stdname}')"
 
         # Extract vertical level variable:
-        levnm, call_check_field, reason = get_dimension_info(hvar)
+        levnm, call_check_field, reason, has_constituent_read = get_dimension_info(hvar)
+
+        # If this is a constituent-indexed field, do not check it for now.
+        if has_constituent_read:
+            continue
+        # end if
 
         # Set "check_field" call string:
         if call_check_field:
