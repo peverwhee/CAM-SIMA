@@ -263,7 +263,8 @@ contains
       character(len=cl)    :: file_path       !Path to NetCDF file
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
-      integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: dim_sizes(:)    !Variable dimension sizes listed on file
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
       !----------------------
@@ -303,7 +304,7 @@ contains
       end if
 
       !Check if variable subsetting is requested and valid:
-      call var_subset_check(varname, var_ndims, dim_sizes, errmsg, errcode, start, count)
+      call var_subset_check(varname, var_ndims, dim_sizes, alloc_dims, errmsg, errcode, start, count)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -312,7 +313,7 @@ contains
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2165,7 +2166,7 @@ contains
 
    end subroutine get_dim_sizes
 
-   subroutine var_subset_check(varname, var_ndims, dim_sizes, errmsg, errcode, start, count)
+   subroutine var_subset_check(varname, var_ndims, dim_sizes, alloc_dims, errmsg, errcode, start, count)
       !Check that the start and count arrays are
       !either both absent or present, have the correct number
       !of elements, have elements that are within bounds,
@@ -2178,8 +2179,9 @@ contains
       integer,          intent(in) :: dim_sizes(:)     !Dimension sizes for variable on file
 
       !Output arguments:
-      character(len=*), intent(out) :: errmsg !Error message
-      integer, intent(out)          :: errcode !Error code
+      integer, allocatable, intent(out) :: alloc_dims(:) !Array that stores dimension sizes used for variable allocation
+      character(len=*),     intent(out) :: errmsg !Error message
+      integer,              intent(out) :: errcode !Error code
 
       !Optional input arguments:
       integer, optional, intent(in) :: start(:) !Start indices for each dimension
@@ -2194,8 +2196,10 @@ contains
       errmsg  = ''
 
       !If both start and count are not present,
-      !then return with no error:
+      !then set alloc_dims to have the same dimensionality as
+      !the variable on file, and return:
       if (.not. present(start) .and. .not. present(count)) then
+         allocate(alloc_dims(ndims), source=dim_sizes, stat=errcode, errmsg=errmsg)
          return
       end if
 
@@ -2212,8 +2216,10 @@ contains
          return
       end if
 
-      !Check that start has the correct number of elements:
+      !Determin the total number of dimensions for variable on file:
       file_var_dim_num = size(dim_sizes)
+
+      !Check that start has the correct number of elements:
       if (size(start) /= file_var_dim_num) then
          errcode = bad_subset_num_elem_err
          write(errmsg, '(3a,i0,a,i0,a)') &
