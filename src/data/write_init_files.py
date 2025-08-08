@@ -174,13 +174,17 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
             outfile.include(filepath)
         # end for
 
+        all_req_vars = in_vars + out_vars
+        # Remove duplicates but preserve order for testing
+        unique_req_vars = list(OrderedDict.fromkeys(all_req_vars))
+
         # Write public parameters:
-        retvals = write_ic_params(outfile, in_vars, ic_names, registry_constituents)
+        retvals = write_ic_params(outfile, unique_req_vars, ic_names, registry_constituents)
         ic_names, ic_max_len, stdname_max_len = retvals
 
         # Write initial condition arrays:
         write_ic_arrays(outfile, ic_names, ic_max_len,
-                        stdname_max_len, in_vars, registry_constituents)
+                        stdname_max_len, unique_req_vars, registry_constituents)
 
         # Add "contains" statement:
         outfile.end_module_header()
@@ -1190,8 +1194,6 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("end do", 2)
     outfile.blank_line()
 
-    # start default case steps:
-
     # End subroutine:
     outfile.write("end subroutine physics_read_data", 1)
 
@@ -1252,8 +1254,8 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
             call_str += f"timestep, {var_locname}, '{var_stdname}', "
             call_str += "min_difference, min_relative_value, is_first, diff_found)"
         else:
-            call_str = f"call endrun('Cannot check status of {var_locname}'" + \
-                f"//', {reason}')"
+            # For check field, don't endrun
+            call_str = "! do nothing - variable can't be checked"
         # end if
         # Add string to dictionary:
         call_string_dict[call_string_key] = call_str
@@ -1388,7 +1390,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
                     "that they can be read from input file if need be:", 3)
     outfile.write("call ccpp_physics_suite_variables(suite_names" +           \
                   "(suite_idx), ccpp_required_data, errmsg, errflg, " +       \
-                  "input_vars=.true., output_vars=.false.)", 4)
+                  "input_vars=.false., output_vars=.true.)", 4)
     outfile.blank_line()
 
     # Loop over required variables:
@@ -1397,37 +1399,48 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     outfile.write("do req_idx = 1, size(ccpp_required_data, 1)", 3)
     outfile.blank_line()
 
-    # First check if the required variable is a constituent
-    outfile.comment("First check if the required variable is a constituent:", 4)
-    outfile.write("call const_get_index(ccpp_required_data(req_idx), constituent_idx, abort=.false., warning=.false.)", 4)
-    outfile.write("if (constituent_idx > -1) then", 4)
-    outfile.write("cycle", 5)
-    outfile.write("else", 4)
-    outfile.comment("The required variable is not a constituent. Check if the variable was read from a file", 5)
-
     # Call input name search function:
-    outfile.comment("Find IC file input name array index for required variable:", 5)
-    outfile.write("call is_read_from_file(ccpp_required_data(req_idx), " +    \
-                  "is_read, stdnam_idx_out=name_idx)", 5)
-    outfile.write("if (.not. is_read) then", 5)
-    outfile.write("cycle", 6)
-    outfile.write("end if", 5)
+    outfile.comment("Find IC file input name array index for required variable:", 4)
+    outfile.write("name_idx = find_input_name_idx(ccpp_required_data(req_idx), .true., constituent_idx)", 4)
+
+    # Start select-case statement:
+    outfile.blank_line()
+    outfile.comment("Check for special index values:", 4)
+    outfile.write("select case (name_idx)", 4)
+    outfile.blank_line()
+
+    # Skip constituent variables:
+    outfile.write("case (const_idx)", 5)
+    outfile.blank_line()
+    outfile.comment("If variable is a constituent, then do nothing. We'll handle these later", 6)
+    outfile.blank_line()
+
+    # Generate error message if required variable isn't found:
+    outfile.write("case (no_exist_idx)", 5)
+    outfile.blank_line()
+    outfile.comment("If an index was never found, then do nothing. We won't try to check these.", 6)
+    outfile.blank_line()
+
+    # start default case steps:
+    outfile.write("case default", 5)
+    outfile.blank_line()
 
     # Generate "check_field" calls:
-    outfile.comment("Check variable vs input check file:", 5)
+    outfile.comment("Check variable vs input check file:", 6)
     outfile.blank_line()
-    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 5)
+    outfile.write("select case (trim(phys_var_stdnames(name_idx)))", 6)
     for case_call, read_call in call_string_dict.items():
-        outfile.write(case_call, 5)
-        outfile.write(read_call, 6)
+        outfile.write(case_call, 6)
+        outfile.write(read_call, 7)
         outfile.blank_line()
-    outfile.write("end select !check variables", 5)
-    outfile.write("if (diff_found) then", 5)
-    outfile.write("overall_diff_found = .true.", 6)
-    outfile.write("end if", 5)
-    outfile.write("end if !check if constituent", 4)
+    outfile.write("end select !check variables", 6)
+    outfile.write("if (diff_found) then", 6)
+    outfile.write("overall_diff_found = .true.", 7)
+    outfile.write("end if", 6)
 
     # End select case and required variables loop:
+    outfile.write("end select !special indices", 4)
+    outfile.blank_line()
     outfile.write("end do !Suite-required variables", 3)
     outfile.blank_line()
 
