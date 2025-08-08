@@ -2199,7 +2199,7 @@ contains
       !then set alloc_dims to have the same dimensionality as
       !the variable on file, and return:
       if (.not. present(start) .and. .not. present(count)) then
-         allocate(alloc_dims(ndims), source=dim_sizes, stat=errcode, errmsg=errmsg)
+         allocate(alloc_dims, source=dim_sizes, stat=errcode, errmsg=errmsg)
          return
       end if
 
