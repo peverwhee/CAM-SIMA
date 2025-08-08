@@ -327,10 +327,6 @@ CONTAINS
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, phys_state%thermo%theta, 'potential_temperature',               &
                        min_difference, min_relative_value, is_first, diff_found)
 
-               case ('air_pressure_at_sea_level')
-                  call check_field(file, input_var_names(:,name_idx), timestep, phys_state%slp, 'air_pressure_at_sea_level', min_difference,           &
-                       min_relative_value, is_first, diff_found)
-
                end select !check variables
                if (diff_found) then
                   overall_diff_found = .true.

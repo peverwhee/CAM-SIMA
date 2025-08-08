@@ -237,7 +237,6 @@ CONTAINS
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check_mf,   only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
       use ref_theta,                 only: theta
-      use physics_types_mf,          only: slp
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -328,10 +327,6 @@ CONTAINS
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,                 &
                        min_relative_value, is_first, diff_found)
-
-               case ('air_pressure_at_sea_level')
-                  call check_field(file, input_var_names(:,name_idx), timestep, slp, 'air_pressure_at_sea_level', min_difference, min_relative_value,  &
-                       is_first, diff_found)
 
                end select !check variables
                if (diff_found) then

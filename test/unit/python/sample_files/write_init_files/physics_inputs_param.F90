@@ -238,7 +238,7 @@ CONTAINS
       use cam_pio_utils,              only: cam_pio_openfile, cam_pio_closefile
       use ccpp_constituent_prop_mod,  only: ccpp_constituent_prop_ptr_t
       use phys_vars_init_check_param, only: phys_var_num, phys_var_stdnames, input_var_names, std_name_len
-      use physics_types_param,        only: g, slp, theta
+      use physics_types_param,        only: theta
 
       ! Dummy arguments
       character(len=SHR_KIND_CL), intent(in) :: file_name
@@ -329,13 +329,6 @@ CONTAINS
                case ('potential_temperature')
                   call check_field(file, input_var_names(:,name_idx), 'lev', timestep, theta, 'potential_temperature', min_difference,                 &
                        min_relative_value, is_first, diff_found)
-
-               case ('air_pressure_at_sea_level')
-                  call check_field(file, input_var_names(:,name_idx), timestep, slp, 'air_pressure_at_sea_level', min_difference, min_relative_value,  &
-                       is_first, diff_found)
-
-               case ('gravitational_acceleration')
-                  call endrun('Cannot check status of g'//', g has no horizontal dimension')
 
                end select !check variables
                if (diff_found) then
