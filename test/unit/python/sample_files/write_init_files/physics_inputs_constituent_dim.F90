@@ -329,7 +329,7 @@ CONTAINS
 
                case (no_exist_idx)
 
-                  ! If an index was never found, then do nothing. We won't try to check these.
+                  ! If the index for an output variable was not found, then do nothing. We won't try to check these.
 
                case default
 

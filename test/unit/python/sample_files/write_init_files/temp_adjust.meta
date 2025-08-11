@@ -44,6 +44,12 @@
   dimensions = (horizontal_loop_extent)
   type = real | kind = kind_phys
   intent = out
+[ llama ]
+  standard_name = scalar_variable_llama
+  units = llamas s-2
+  dimensions = ()
+  type = integer
+  intent = out
 [ errmsg ]
   standard_name = ccpp_error_message
   long_name = Error message for error handling in CCPP
