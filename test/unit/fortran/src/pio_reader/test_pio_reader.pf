@@ -1288,8 +1288,8 @@ subroutine test_pio_reader_1d_int_full_subset_read()
     call reader%get_var("pressure", pressure, errmsg, errcode, start=(/0/), count=(/3/))
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(pressure))
