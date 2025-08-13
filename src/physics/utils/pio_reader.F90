@@ -267,8 +267,8 @@ contains
       integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
-      logical,             :: do_subset       !Will variable subsetting be done?  Answer provided by
-                                               !var_subset_check subroutine.
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
