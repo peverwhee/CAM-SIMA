@@ -160,6 +160,11 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: ndims           !Number of variable dimensions on NetCDF file
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
+
       !----------------------
 
       !Check if file is open:
@@ -375,8 +380,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -413,16 +421,32 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1), alloc_dims(2)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
       end if
       var(:,:) = huge(1)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -467,8 +491,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -561,8 +588,11 @@ contains
       integer              :: ndims           !Number of variable dimensions on NetCDF file
       integer, allocatable :: dim_ids(:)      !Variable dimension IDs
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -653,8 +683,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -751,6 +784,10 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: ndims           !Number of variable dimensions on NetCDF file
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -855,8 +892,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -947,8 +987,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1039,8 +1082,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1131,8 +1177,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1223,8 +1272,11 @@ contains
       integer              :: err_handling    !PIO error handling code
       integer              :: var_id          !NetCDF variable ID
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1322,6 +1374,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
@@ -1331,6 +1384,9 @@ contains
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1446,6 +1502,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
        !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
@@ -1455,6 +1512,9 @@ contains
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1570,6 +1630,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
@@ -1579,6 +1640,9 @@ contains
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1694,6 +1758,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
@@ -1703,6 +1768,9 @@ contains
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
 
@@ -1820,6 +1888,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
@@ -1829,6 +1898,9 @@ contains
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -1945,6 +2017,7 @@ contains
       integer              :: var_id          !NetCDF variable ID
       integer              :: nc_type         !NetCDF variable type
       integer, allocatable :: dim_sizes(:)    !Variable dimension sizes
+      integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       !NOTE:  NetCDF supports both character arrays and string-type
       !data depending on the NetCDF version, so the dimensions
@@ -1954,6 +2027,9 @@ contains
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
       integer, parameter   :: var_ndims = 6   !Number of expected dimensions for variable in NetCDF file
+
+      logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                              !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:

@@ -53,22 +53,22 @@ subroutine test_pio_reader_open_close_file()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Check that file was opened successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Attempt to close file:
     call reader%close_file(errmsg, errcode)
 
     ! Check that file was closed successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Attempt to close the file again:
     call reader%close_file(errmsg, errcode)
 
     ! Check that closing an already-closed file does not cause an error:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Deallocate reader object:
     deallocate(reader)
@@ -208,8 +208,8 @@ subroutine test_pio_reader_1d_int_read()
     call reader%get_var("pressure", pressure, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(pressure))
@@ -262,8 +262,8 @@ subroutine test_pio_reader_2d_int_read()
     call reader%get_var("minor_limits_gpt_lower", minor_limits_gpt_lower, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(minor_limits_gpt_lower))
@@ -317,8 +317,8 @@ subroutine test_pio_reader_3d_int_read()
     call reader%get_var("key_species", key_species, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(key_species))
@@ -375,8 +375,8 @@ subroutine test_pio_reader_1d_char_read()
     call reader%get_var("gas_names", gas_names, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(gas_names))
@@ -453,8 +453,8 @@ subroutine test_pio_reader_0d_real_read()
     call reader%get_var("press_ref_trop", press_ref_trop, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(press_ref_trop))
@@ -511,8 +511,8 @@ subroutine test_pio_reader_1d_real_read()
     call reader%get_var("press_ref", press_ref, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(press_ref))
@@ -571,8 +571,8 @@ subroutine test_pio_reader_2d_real_read()
     call reader%get_var("bnd_limits_wavenumber", bnd_limits_wavenumber, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(bnd_limits_wavenumber))
@@ -634,8 +634,8 @@ subroutine test_pio_reader_3d_real_read()
     call reader%get_var("vmr_ref", vmr_ref, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(vmr_ref))
@@ -715,8 +715,8 @@ subroutine test_pio_reader_4d_real_read_with_dims()
     call reader%get_var("kmajor", kmajor, errmsg, errcode)
 
     ! Check that the variable was read successfully:
-    @assertEqual(0, errcode)
     @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
 
@@ -1308,6 +1308,66 @@ subroutine test_pio_reader_1d_int_full_subset_read()
 
 end subroutine test_pio_reader_1d_int_full_subset_read
 
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_2d_int_full_subset_read()
+    !Check that the PIO reader can read a 2D integer variable
+    !from a file successfully.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    integer, allocatable :: minor_limits_gpt_lower(:,:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 2D integer variable:
+    call reader%get_var("minor_limits_gpt_lower", minor_limits_gpt_lower, errmsg, errcode, &
+                        start=(/1,2/), count=(/2,3/))
+
+    ! Check that the variable was read successfully:
+    @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(allocated(minor_limits_gpt_lower))
+    @assertEqual(2, size(minor_limits_gpt_lower, dim=1))
+    @assertEqual(3, size(minor_limits_gpt_lower, dim=2))
+
+    ! Check that the variable's values are correct:
+    !@assertEqual(1, sum(minor_limits_gpt_lower(1,1)))
+    !@assertEqual(10, sum(minor_limits_gpt_lower(2,1)))
+    !@assertEqual(2, sum(minor_limits_gpt_lower(1,2)))
+
+    write(*,*) 'minor_limits_gpt_lower values:', minor_limits_gpt_lower(:, :)
+
+    ! Perform test cleanup:
+    deallocate(minor_limits_gpt_lower)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_2d_int_full_subset_read
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader variable subsetting error tests
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1608,7 +1668,7 @@ subroutine test_pio_reader_bad_count_element_range()
      "Element 1 of 'count' for variable 'pressure' is out of bounds.  Expected 1 to 59 but got -6."
 
     character(len=*), parameter :: expected_err_msg_huge = &
-     "Element 1 of 'start' + 'count' for variable 'pressure' is out of bounds.  Expected 1 to 59 but got 60."
+     "Element 1 of 'count' for variable 'pressure' is out of bounds.  Expected 1 to 59 but got 60."
 
     ! Begin test:
 
