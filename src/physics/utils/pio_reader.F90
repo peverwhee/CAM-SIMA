@@ -267,6 +267,8 @@ contains
       integer, allocatable :: alloc_dims(:)   !Variable dimension sizes to allocate output variable to.
 
       integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
+      logical,             :: do_subset       !Will variable subsetting be done?  Answer provided by
+                                               !var_subset_check subroutine.
       !----------------------
 
       !Check if file is open:
@@ -304,7 +306,7 @@ contains
       end if
 
       !Check if variable subsetting is requested and valid:
-      call var_subset_check(varname, var_ndims, dim_sizes, alloc_dims, errmsg, errcode, start, count)
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -320,7 +322,15 @@ contains
          return
       end if
       var(:) = huge(1)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_vara(pio_file_handle, var_id, start, count, var(:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -2166,7 +2176,8 @@ contains
 
    end subroutine get_dim_sizes
 
-   subroutine var_subset_check(varname, var_ndims, dim_sizes, alloc_dims, errmsg, errcode, start, count)
+   subroutine var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, &
+                               errmsg, errcode, start, count)
       !Check that the start and count arrays are
       !either both absent or present, have the correct number
       !of elements, have elements that are within bounds,
@@ -2179,6 +2190,7 @@ contains
       integer,          intent(in) :: dim_sizes(:)     !Dimension sizes for variable on file
 
       !Output arguments:
+      logical,              intent(out) :: do_subset     !True if variable subsetting will be done
       integer, allocatable, intent(out) :: alloc_dims(:) !Array that stores dimension sizes used for variable allocation
       character(len=*),     intent(out) :: errmsg !Error message
       integer,              intent(out) :: errcode !Error code
@@ -2194,6 +2206,9 @@ contains
       !Initialize error code and message:
       errcode = 0
       errmsg  = ''
+
+      !Assume no subsetting will be done:
+      do_subset = .false.
 
       !If both start and count are not present,
       !then set alloc_dims to have the same dimensionality as
@@ -2273,6 +2288,14 @@ contains
                return
             end if
          end do
+
+         !Start and Count are good, so notify caller that subsetting
+         !will occur, and set alloc_dims to match 'count':
+         do_subset = .true.
+         allocate(alloc_dims, source=count, stat=errcode, errmsg=errmsg)
+         if (errcode /= 0) then
+            return
+         end if
       end if
 
    end subroutine var_subset_check

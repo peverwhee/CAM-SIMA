@@ -1252,6 +1252,67 @@ end subroutine test_pio_reader_real_get_var_bad_rank
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 @test
+subroutine test_pio_reader_1d_int_full_subset_read()
+    !Check that the PIO reader can read a 1D integer variable
+    !from a file successfully with subsetting that has
+    !a count array with the same rank as the output variable.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    integer, allocatable :: pressure(:)
+
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+
+    ! Read 1D integer variable:
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/0/), count=(/3/))
+
+    ! Check that the variable was read successfully:
+    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(allocated(pressure))
+    @assertEqual(3, size(pressure))
+
+    ! Check that the variable's values are correct:
+    @assertEqual(0, pressure(1))
+    @assertEqual(1, pressure(2))
+    @assertEqual(2, pressure(3))
+
+    ! Perform test cleanup:
+    deallocate(pressure)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_1d_int_subset_read
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
+!PIO reader variable subsetting error tests
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+@test
 subroutine test_pio_reader_missing_start_argument()
     ! Check that the PIO reader raises the correct error
     ! when attempting to read a variable with
