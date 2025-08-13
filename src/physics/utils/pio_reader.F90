@@ -326,6 +326,8 @@ contains
       if (do_subset) then
          !If subsetting is requested, then read only the specified
          !subset of the variable:
+         write(*,*) 'var size:', size(var), alloc_dims(:)
+         write(*,*) 'start/count:', start(:), count(:)
          errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:))
       else
          !Otherwise, read the entire variable:

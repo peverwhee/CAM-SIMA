@@ -1285,7 +1285,7 @@ subroutine test_pio_reader_1d_int_full_subset_read()
 
 
     ! Read 1D integer variable:
-    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/0/), count=(/3/))
+    call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1/), count=(/3/))
 
     ! Check that the variable was read successfully:
     @assertEqual('', errmsg)
