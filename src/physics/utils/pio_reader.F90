@@ -2366,24 +2366,28 @@ contains
          !will occur, and set alloc_dims to match 'count':
          do_subset = .true.
          allocate(alloc_dims, source=count, stat=errcode, errmsg=errmsg)
-         if (errcode /= 0) then
-            return
-         end if
+         return !Nothing more to do here.
+
       else if (size(count) > var_ndims) then
          !The subsetting appears to be reducing
          !the dimensionality of the file variable.
          !Thus make sure that the number of dimensions
          !with more than a count of "1" matches
          !the output variable's dimensionality:
-         count_true_dim_num = count(count(:) > 1) !Notethat there is both a "count" function and "count" array
+         count_true_dim_num = 0
+         do i=1, size(count)
+            if (count(i) > 1) then
+               count_true_dim_num = count_true_dim_num + 1
+            end if
+         end do
 
          if (count_true_dim_num > var_ndims) then
-                  errcode = bad_subset_num_elem_err
-                  write(errmsg, '(3a,i0,a,i0,a)') &
-                        "The 'count' array for variable '", trim(varname), &
-                        "' has too many elements with a count greater than one.  Expected at most ", &
-                        var_ndims, " but got ", count_true_dim_num, "."
-                  return
+            errcode = bad_subset_num_elem_err
+            write(errmsg, '(3a,i0,a,i0,a)') &
+            "The 'count' array for variable '", trim(varname), &
+            "' has too many elements with a count greater than one.  Expected at most ", &
+            var_ndims, " but got ", count_true_dim_num, "."
+            return
          end if
 
       else if (size(count) < var_ndims) then
