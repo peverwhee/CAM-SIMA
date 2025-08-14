@@ -532,9 +532,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1), alloc_dims(2), alloc_dims(3)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -629,9 +637,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3), dim_sizes(4)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -724,9 +740,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3), dim_sizes(4), dim_sizes(5)), &
+      allocate(var(dalloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4), alloc_dims(5)), &
                stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
@@ -933,9 +957,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1028,9 +1060,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1), alloc_dims(2)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1123,9 +1163,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize the variable,
       !and read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1), alloc_dims(2), alloc_dims(3)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1218,9 +1266,17 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dim_sizes(1), dim_sizes(2), dim_sizes(3), dim_sizes(4)), stat=errcode, errmsg=errmsg)
+      allocate(var(alloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1307,6 +1363,14 @@ contains
 
       !Get variable dimension sizes:
       call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
+      !Check if variable subsetting is requested and valid:
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1572,11 +1636,21 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid
+      !Note that this involves ignoring the first dimension,
+      !which is just the character length:
+      call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data.  Note that the first dimenstion
-      !is the length of the character array, so need to start
-      !the dim_sizes allocation count at index two:
-      allocate(character(dim_sizes(1)) :: var(dim_sizes(2)), stat=errcode, errmsg=errmsg)
+      !read-in the NetCDF data. Note that the first dimension
+      !of dim_sizes is the length of the character variable,
+      !and is not included in the 'alloc_dims' array.
+      allocate(character(dim_sizes(1)) :: var(alloc_dims(1)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1700,11 +1774,21 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      !Note that this involves ignoring the first dimension,
+      !which is just the character length:
+      call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data.  Note that the first dimenstion
-      !is the length of the character array, so need to start
-      !the dim_sizes allocation count at index two:
-      allocate(character(dim_sizes(1)) :: var(dim_sizes(2), dim_sizes(3)), stat=errcode, errmsg=errmsg)
+      !read-in the NetCDF data. Note that the first dimension
+      !of dim_sizes is the length of the character variable,
+      !and is not included in the 'alloc_dims' array.
+      allocate(character(dim_sizes(1)) :: var(alloc_dims(1), alloc_dims(2)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1830,11 +1914,21 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid:
+      !Note that this involves ignoring the first dimension,
+      !which is just the character length:
+      call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data.  Note that the first dimenstion
-      !is the length of the character array, so need to start
-      !the dim_sizes allocation count at index two:
-      allocate(character(dim_sizes(1)) :: var(dim_sizes(2), dim_sizes(3), dim_sizes(4)), stat=errcode, errmsg=errmsg)
+      !read-in the NetCDF data. Note that the first dimension
+      !of dim_sizes is the length of the character variable,
+      !and is not included in the 'alloc_dims' array.
+      allocate(character(dim_sizes(1)) :: var(alloc_dims(1), alloc_dims(2), alloc_dims(3)), stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1958,11 +2052,21 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid
+      !Note that this involves ignoring the first dimension,
+      !which is just the character length:
+      call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data.  Note that the first dimenstion
-      !is the length of the character array, so need to start
-      !the dim_sizes allocation count at index two:
-      allocate(character(dim_sizes(1)) :: var(dim_sizes(2), dim_sizes(3), dim_sizes(4), dim_sizes(5)), &
+      !read-in the NetCDF data. Note that the first dimension
+      !of dim_sizes is the length of the character variable,
+      !and is not included in the 'alloc_dims' array.
+      allocate(character(dim_sizes(1)) :: var(alloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4)), &
                stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
@@ -2087,11 +2191,21 @@ contains
          return
       end if
 
+      !Check if variable subsetting is requested and valid
+      !Note that this involves ignoring the first dimension,
+      !which is just the character length:
+      call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      if (errcode /= 0) then
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data.  Note that the first dimenstion
-      !is the length of the character array, so need to start
-      !the dim_sizes allocation count at index two:
-      allocate(character(dim_sizes(1)) :: var(dim_sizes(2), dim_sizes(3), dim_sizes(4), dim_sizes(5), dim_sizes(6)), &
+      !read-in the NetCDF data. Note that the first dimension
+      !of dim_sizes is the length of the character variable,
+      !and is not included in the 'alloc_dims' array.
+      allocate(character(dim_sizes(1)) :: var(alloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4), alloc_dims(5)), &
                stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
