@@ -750,7 +750,7 @@ contains
 
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
-      allocate(var(dalloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4), alloc_dims(5)), &
+      allocate(var(alloc_dims(1), alloc_dims(2), alloc_dims(3), alloc_dims(4), alloc_dims(5)), &
                stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
