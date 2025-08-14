@@ -303,7 +303,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -414,7 +414,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -525,7 +525,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -622,7 +622,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -717,7 +717,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -926,7 +926,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1021,7 +1021,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1116,7 +1116,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1211,7 +1211,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1306,7 +1306,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1437,7 +1437,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1565,7 +1565,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1693,7 +1693,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1823,7 +1823,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1951,7 +1951,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2080,7 +2080,7 @@ contains
       end if
 
       !Get variable dimension sizes:
-      call get_dim_sizes(varname, var_ndims, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+      call get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -2171,7 +2171,7 @@ contains
       end if
    end subroutine get_pio_errmsg
 
-   subroutine get_dim_sizes(varname, var_rank, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
+   subroutine get_dim_sizes(varname, var_id, pio_file_handle, dim_sizes, errcode, errmsg)
       !Extract the dimension sizes for a NetCDF
       !variable given a variable ID, and
       !return a new 1-D array with the variable
@@ -2183,7 +2183,6 @@ contains
 
       !Input variables:
       character(len=*),  intent(in) :: varname          !Name of NetCDF variable
-      integer,           intent(in) :: var_rank         !Rank (number of dims) of NetCDF variable
       integer,           intent(in) :: var_id           !Variable ID for NetCDF variable
       type(file_desc_t), intent(in) :: pio_file_handle  !File handle type used by PIO
 
@@ -2207,15 +2206,6 @@ contains
       if(errcode /= PIO_NOERR) then
          !Extract error message from PIO:
          call get_pio_errmsg(pio_inq_var_info_err, varname, errcode, errmsg)
-         return
-      end if
-
-      !Check that the variable rank as specified by the caller
-      !matches what is found on the NetCDF file:
-      errcode = 0
-      if(ndims /= var_rank) then
-         errcode = bad_var_rank_err
-         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
          return
       end if
 
@@ -2276,8 +2266,9 @@ contains
       integer, optional, intent(in) :: count(:) !Number of elements to read for each dimension
 
       !Local variables:
-      integer :: file_var_dim_num !Number of dimensions for variable on file
-      integer :: i                !Loop control variable
+      integer :: file_var_dim_num   !Number of dimensions for variable on file
+      integer :: count_true_dim_num !Number of dimensions in count array that are greater than 1
+      integer :: i                  !Loop control variable
 
       !Initialize error code and message:
       errcode = 0
@@ -2286,12 +2277,28 @@ contains
       !Assume no subsetting will be done:
       do_subset = .false.
 
+      !Determin the total number of dimensions for variable on file:
+      file_var_dim_num = size(dim_sizes)
+
       !If both start and count are not present,
-      !then set alloc_dims to have the same dimensionality as
-      !the variable on file, and return:
+      !then check for matching ranks, and set alloc_dims
+      !to have the same dimensionality as the file variable:
       if (.not. present(start) .and. .not. present(count)) then
+
+         !Check that the variable rank as specified by the caller
+         !matches what is found on the NetCDF file:
+         if(file_var_dim_num /= var_ndims) then
+            errcode = bad_var_rank_err
+            write(errmsg, '(4a,i0,a,i0,a)') &
+               "Variable '",trim(varname),"' isn't declared with the correct number of dimensions.", &
+               " Expected ", file_var_dim_num, " dimensions, but is declared with ", &
+               var_ndims, " dimensions."
+            return
+         end if
+
+         !Allocate "alloc_dims" to exactly match the file variable dimensions:
          allocate(alloc_dims, source=dim_sizes, stat=errcode, errmsg=errmsg)
-         return
+         return !Nothing more to do here.
       end if
 
       !At this point, either start or count
@@ -2306,9 +2313,6 @@ contains
          errmsg = "Variable '"//varname//"' is being subsetted with 'start', but no 'count' was provided."
          return
       end if
-
-      !Determin the total number of dimensions for variable on file:
-      file_var_dim_num = size(dim_sizes)
 
       !Check that start has the correct number of elements:
       if (size(start) /= file_var_dim_num) then
@@ -2355,13 +2359,6 @@ contains
                      trim(varname), "' is out of bounds.  Expected 1 to ", &
                      dim_sizes(i), " but got ", count(i), "."
                return
-!            else if (start(i) + count(i) > dim_sizes(i)) then
-!               errcode = bad_subset_range_err
-!               write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
-!                     "Element ", i, " of 'start' + 'count' for variable '", &
-!                     trim(varname), "' is out of bounds.  Expected 1 to ", &
-!                     dim_sizes(i), " but got ", start(i) + count(i), "."
-!               return
             end if
          end do
 
@@ -2372,6 +2369,31 @@ contains
          if (errcode /= 0) then
             return
          end if
+      else if (size(count) > var_ndims) then
+         !The subsetting appears to be reducing
+         !the dimensionality of the file variable.
+         !Thus make sure that the number of dimensions
+         !with more than a count of "1" matches
+         !the output variable's dimensionality:
+         count_true_dim_num = count(count(:) > 1) !Notethat there is both a "count" function and "count" array
+
+         if (count_true_dim_num > var_ndims) then
+                  errcode = bad_subset_num_elem_err
+                  write(errmsg, '(3a,i0,a,i0,a)') &
+                        "The 'count' array for variable '", trim(varname), &
+                        "' has too many elements with a count greater than one.  Expected at most ", &
+                        var_ndims, " but got ", count_true_dim_num, "."
+                  return
+         end if
+
+      else if (size(count) < var_ndims) then
+         !I don't think this should ever happen as
+         !we have already checked that count matches
+         !file_var_dim num, but just in case let's
+         !throw an error here:
+         errcode = bad_subset_num_elem_err
+         errmsg = 'The number of elements in the 'count' array for variable "'//trim(varname)//'" has too few dimensions.'
+         return
       end if
 
    end subroutine var_subset_check
