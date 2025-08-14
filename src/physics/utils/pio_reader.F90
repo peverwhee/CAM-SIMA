@@ -1575,7 +1575,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
+      integer, parameter   :: var_ndims = 1   !Number of expected dimensions for variable in NetCDF file
 
       logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
                                               !var_subset_check subroutine.
@@ -1713,7 +1713,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
+      integer, parameter   :: var_ndims = 2   !Number of expected dimensions for variable in NetCDF file
 
       logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
                                               !var_subset_check subroutine.
@@ -1851,7 +1851,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
+      integer, parameter   :: var_ndims = 3   !Number of expected dimensions for variable in NetCDF file
 
       logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
                                               !var_subset_check subroutine.
@@ -1991,7 +1991,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
+      integer, parameter   :: var_ndims = 4   !Number of expected dimensions for variable in NetCDF file
 
       logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
                                               !var_subset_check subroutine.
@@ -2130,7 +2130,7 @@ contains
       !Ideally the actual type would be checked and handled
       !differently, but for now just confirm it's a character
       !array and check for ndims = rank+1
-      integer, parameter   :: var_ndims = 6   !Number of expected dimensions for variable in NetCDF file
+      integer, parameter   :: var_ndims = 5   !Number of expected dimensions for variable in NetCDF file
 
       logical              :: do_subset       !Will variable subsetting be done?  Answer provided by
                                               !var_subset_check subroutine.
