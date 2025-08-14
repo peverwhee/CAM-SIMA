@@ -2396,7 +2396,7 @@ contains
          !file_var_dim num, but just in case let's
          !throw an error here:
          errcode = bad_subset_num_elem_err
-         errmsg = 'The number of elements in the 'count' array for variable "'//trim(varname)//'" has too few dimensions.'
+         errmsg = "The number of elements in the 'count' array for variable '"//trim(varname)//"' has too few dimensions."
          return
       end if
 
