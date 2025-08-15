@@ -1124,7 +1124,7 @@ subroutine test_pio_reader_int_get_var_bad_rank()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-    "Variable 'pressure' isn't declared with the correct number of dimensions.  Expected 1 dimensions, but is declared with 2 dimensions."
+    "Variable 'pressure' isn't declared with the correct number of dimensions. Expected 1 dimensions, but is declared with 2 dimensions."
 
     ! Begin test:
 
@@ -1173,7 +1173,7 @@ subroutine test_pio_reader_char_get_var_bad_rank()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-        "Variable 'gas_names' isn't declared with the correct number of dimensions.  Expected 1 dimensions, but is declared with 2 dimensions."
+        "Variable 'gas_names' isn't declared with the correct number of dimensions. Expected 1 dimensions, but is declared with 2 dimensions."
 
 
     ! Begin test:
@@ -1225,7 +1225,7 @@ subroutine test_pio_reader_real_get_var_bad_rank()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-    "Variable 'press_ref' isn't declared with the correct number of dimensions.  Expected 1 dimensions, but is declared with 2 dimensions."
+    "Variable 'press_ref' isn't declared with the correct number of dimensions. Expected 1 dimensions, but is declared with 2 dimensions."
 
 
     ! Begin test:
