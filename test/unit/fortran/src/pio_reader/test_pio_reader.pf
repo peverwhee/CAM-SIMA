@@ -1385,6 +1385,63 @@ subroutine test_pio_reader_2d_int_full_subset_read()
 
 end subroutine test_pio_reader_2d_int_full_subset_read
 
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_1d_real_full_subset_read()
+    !Check that the PIO reader can read a 1D real variable
+    !from a file successfully with subsetting that has
+    !a count array with the same rank as the output variable.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    real(kind_phys), allocatable :: press_ref(:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+
+    ! Read 1D integer variable:
+    call reader%get_var("press_ref", press_ref, errmsg, errcode, start=(/10/), count=(/2/))
+
+    ! Check that the variable was read successfully:
+    @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(allocated(press_ref))
+    @assertEqual(2, size(press_ref))
+
+    ! Check that the variable's values are correct:
+    @assertEqual(18127.2241875, press_ref(1), tolerance=1.0e-7)
+    @assertEqual(14841.3159102, press_ref(2), tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(press_ref)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_1d_int_full_subset_read
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader variable subsetting error tests
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1715,6 +1772,58 @@ subroutine test_pio_reader_bad_count_element_range()
 
 end subroutine test_pio_reader_bad_count_element_range
 
+!-----------------------------------------
+
+@test
+subroutine test_pio_reader_bad_dim_reduce_elem_num()
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to read a variable with a "count"
+    ! argument for a file variable with a larger
+    ! number of dimensions as the output variable, but
+    ! with the incorrect number of "non-one" elements.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    real(kind_phys), allocatable :: press_ref(:)
+
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Expected error message:
+    character(len=*), parameter :: expected_err_msg = &
+    "The 'count' array for variable 'press_ref' has too many elements with a value greater than one.  Expected at most 1, but got 3."
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Attempt to subset higher-dimensional variable with incorrect count elements:
+    call reader%get_var("vmr_ref", press_ref, errmsg, errcode, start=(/1,1,1/), count=(/14,20,2/))
+
+    ! Check that the correct error was raised:
+    @assertNotEqual(0, errcode)
+    @assertEqual(expected_err_msg, trim(errmsg))
+
+    ! Perform test cleanup:
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_bad_dim_reduce_elem_num
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++
 

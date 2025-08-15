@@ -2499,7 +2499,7 @@ contains
             errcode = bad_subset_num_elem_err
             write(errmsg, '(3a,i0,a,i0,a)') &
             "The 'count' array for variable '", trim(varname), &
-            "' has too many elements with a count greater than one.  Expected at most ", &
+            "' has too many elements with a value greater than one.  Expected at most ", &
             var_ndims, " but got ", count_true_dim_num, "."
             return
          end if
