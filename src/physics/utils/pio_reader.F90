@@ -2460,29 +2460,30 @@ contains
          end if
       end do
 
+      !Check if count indices are within bounds:
+      do i = 1, file_var_dim_num
+         if ((count(i) < 1) .or. (count(i) > dim_sizes(i))) then
+            errcode = bad_subset_range_err
+            write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
+                  "Element ", i, " of 'count' for variable '", &
+                  trim(varname), "' is out of bounds.  Expected 1 to ", &
+                  dim_sizes(i), " but got ", count(i), "."
+            return
+         end if
+      end do
+
       !Check if count has the same number of elements as the output variable:
       if (size(count) == var_ndims) then
-         !If so, then check that count is positive and
-         !start + count is within bounds
-         !for each dimension:
-         do i = 1, file_var_dim_num
-            if ((count(i) < 1) .or. (count(i) > dim_sizes(i))) then
-               errcode = bad_subset_range_err
-               write(errmsg, '(a,i0,3a,i0,a,i0,a)') &
-                     "Element ", i, " of 'count' for variable '", &
-                     trim(varname), "' is out of bounds.  Expected 1 to ", &
-                     dim_sizes(i), " but got ", count(i), "."
-               return
-            end if
-         end do
 
-         !Start and Count are good, so notify caller that subsetting
+         !If so, then Start and Count are good,
+         !so notify caller that subsetting
          !will occur, and set alloc_dims to match 'count':
          do_subset = .true.
          allocate(alloc_dims, source=count, stat=errcode, errmsg=errmsg)
          return !Nothing more to do here.
 
       else if (size(count) > var_ndims) then
+
          !The subsetting appears to be reducing
          !the dimensionality of the file variable.
          !Thus make sure that the number of dimensions
