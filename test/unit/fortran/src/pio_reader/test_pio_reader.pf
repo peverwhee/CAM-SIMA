@@ -1442,7 +1442,7 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     deallocate(reader)
     nullify(reader)
 
-!end subroutine test_pio_reader_1d_real_full_subset_read
+end subroutine test_pio_reader_1d_real_full_subset_read
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader variable subsetting error tests
