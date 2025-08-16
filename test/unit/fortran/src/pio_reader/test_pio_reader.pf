@@ -1418,11 +1418,10 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     reader => create_netcdf_reader_t()
 
     ! Open file:
-!    call reader%open_file(fname, errmsg, errcode)
-
+    call reader%open_file(fname, errmsg, errcode)
 
     ! Read 1D integer variable:
-!    call reader%get_var("press_ref", press_ref, errmsg, errcode, start=(/10/), count=(/2/))
+    call reader%get_var("press_ref", press_ref, errmsg, errcode) !, start=(/10/), count=(/2/))
 
     ! Check that the variable was read successfully:
 !    @assertEqual('', errmsg)
@@ -1437,7 +1436,7 @@ subroutine test_pio_reader_1d_real_full_subset_read()
 !    @assertEqual(14841.3159102, press_ref(2), tolerance=1.0e-7)
 
     ! Perform test cleanup:
-!    deallocate(press_ref)
+    deallocate(press_ref)
     call reader%close_file(errmsg, errcode)
     deallocate(reader)
     nullify(reader)
@@ -1792,7 +1791,7 @@ subroutine test_pio_reader_bad_dim_reduce_elem_num()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-    "The 'count' array for variable 'vmr_ref' has too many elements with a value greater than one.  Expected at most 1, but got 3."
+    "The 'count' array for variable 'vmr_ref' has too many elements with a value greater than one.  Expected at most 1 but got 3."
 
     ! Begin test:
 
