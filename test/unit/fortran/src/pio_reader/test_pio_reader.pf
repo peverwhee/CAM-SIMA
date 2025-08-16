@@ -1398,6 +1398,8 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
+    use ccpp_kinds,     only: kind_phys
+
     class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
@@ -1458,8 +1460,6 @@ subroutine test_pio_reader_missing_start_argument()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    use ccpp_kinds,     only: kind_phys
-
     class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
@@ -1510,8 +1510,6 @@ subroutine test_pio_reader_missing_count_argument()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    use ccpp_kinds,     only: kind_phys
-
     class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
@@ -1560,8 +1558,6 @@ subroutine test_pio_reader_bad_num_start_elements()
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
-
-    use ccpp_kinds,     only: kind_phys
 
     class(abstract_netcdf_reader_t), pointer :: reader
 
@@ -1612,8 +1608,6 @@ subroutine test_pio_reader_bad_num_count_elements()
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
 
-    use ccpp_kinds,     only: kind_phys
-
     class(abstract_netcdf_reader_t), pointer :: reader
 
     integer            :: errcode
@@ -1662,8 +1656,6 @@ subroutine test_pio_reader_bad_start_element_range()
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
-
-    use ccpp_kinds,     only: kind_phys
 
     class(abstract_netcdf_reader_t), pointer :: reader
 
@@ -1723,8 +1715,6 @@ subroutine test_pio_reader_bad_count_element_range()
 
     use ccpp_io_reader, only: abstract_netcdf_reader_t
     use ccpp_io_reader, only: create_netcdf_reader_t
-
-    use ccpp_kinds,     only: kind_phys
 
     class(abstract_netcdf_reader_t), pointer :: reader
 
