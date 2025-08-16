@@ -1421,19 +1421,19 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Read 1D integer variable:
-    call reader%get_var("press_ref", press_ref, errmsg, errcode) !, start=(/10/), count=(/2/))
+    call reader%get_var("press_ref", press_ref, errmsg, errcode, start=(/10/), count=(/2/))
 
     ! Check that the variable was read successfully:
-!    @assertEqual('', errmsg)
-!    @assertEqual(0, errcode)
+    @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
 
     ! Check that the variable's properties are correct:
-!    @assertTrue(allocated(press_ref))
-!    @assertEqual(2, size(press_ref))
+    @assertTrue(allocated(press_ref))
+    @assertEqual(2, size(press_ref))
 
     ! Check that the variable's values are correct:
-!    @assertEqual(18127.2241875, press_ref(1), tolerance=1.0e-7)
-!    @assertEqual(14841.3159102, press_ref(2), tolerance=1.0e-7)
+    @assertEqual(18127.2241875, press_ref(1), tolerance=1.0e-7)
+    @assertEqual(14841.3159102, press_ref(2), tolerance=1.0e-7)
 
     ! Perform test cleanup:
     deallocate(press_ref)
