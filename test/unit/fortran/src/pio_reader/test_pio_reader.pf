@@ -1387,35 +1387,35 @@ end subroutine test_pio_reader_2d_int_full_subset_read
 
 !----------------------------------------
 
-!@test
-!subroutine test_pio_reader_1d_real_full_subset_read()
+@test
+subroutine test_pio_reader_1d_real_full_subset_read()
     !Check that the PIO reader can read a 1D real variable
     !from a file successfully with subsetting that has
     !a count array with the same rank as the output variable.
 
-!    use funit
+    use funit
 
-!    use ccpp_io_reader, only: abstract_netcdf_reader_t
-!    use ccpp_io_reader, only: create_netcdf_reader_t
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
 
-!    use ccpp_kinds,     only: kind_phys
+    use ccpp_kinds,     only: kind_phys
 
-!    class(abstract_netcdf_reader_t), pointer :: reader
+    class(abstract_netcdf_reader_t), pointer :: reader
 
-!    integer            :: errcode
-!    character(len=256) :: errmsg
+    integer            :: errcode
+    character(len=256) :: errmsg
 
     !Variable to be read:
-!    real(kind_phys), allocatable :: press_ref(:)
+    real(kind_phys), allocatable :: press_ref(:)
 
     ! File name for testing:
     ! NOTE: This specific file is added during the Github Actions workflow.
-!    character(len=*), parameter :: fname = &
-!    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
     ! Begin test:
 
-!    reader => create_netcdf_reader_t()
+    reader => create_netcdf_reader_t()
 
     ! Open file:
 !    call reader%open_file(fname, errmsg, errcode)
@@ -1438,9 +1438,9 @@ end subroutine test_pio_reader_2d_int_full_subset_read
 
     ! Perform test cleanup:
 !    deallocate(press_ref)
-!    call reader%close_file(errmsg, errcode)
-!    deallocate(reader)
-!    nullify(reader)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
 
 !end subroutine test_pio_reader_1d_real_full_subset_read
 
@@ -1792,7 +1792,7 @@ subroutine test_pio_reader_bad_dim_reduce_elem_num()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-    "The 'count' array for variable 'press_ref' has too many elements with a value greater than one.  Expected at most 1, but got 3."
+    "The 'count' array for variable 'vmr_ref' has too many elements with a value greater than one.  Expected at most 1, but got 3."
 
     ! Begin test:
 
@@ -1802,7 +1802,7 @@ subroutine test_pio_reader_bad_dim_reduce_elem_num()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Attempt to subset higher-dimensional variable with incorrect count elements:
-    call reader%get_var("vmr_ref", press_ref, errmsg, errcode, start=(/1,1,1/), count=(/14,20,2/))
+    call reader%get_var("vmr_ref", press_ref, errmsg, errcode, start=(/1,1,1/), count=(/2,20,14/))
 
     ! Check that the correct error was raised:
     @assertNotEqual(0, errcode)
