@@ -549,7 +549,15 @@ contains
          return
       end if
       var(:,:,:) = huge(1)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:))
+
+       if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -654,7 +662,15 @@ contains
          return
       end if
       var(:,:,:,:) = huge(1)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:))
+
+       if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -758,7 +774,15 @@ contains
          return
       end if
       var(:,:,:,:,:) = huge(1)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -974,7 +998,15 @@ contains
          return
       end if
       var(:) = huge(1._kind_phys)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1077,7 +1109,15 @@ contains
          return
       end if
       var(:,:) = huge(1._kind_phys)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1180,7 +1220,15 @@ contains
          return
       end if
       var(:,:,:) = huge(1._kind_phys)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1283,7 +1331,15 @@ contains
          return
       end if
       var(:,:,:,:) = huge(1._kind_phys)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1387,7 +1443,15 @@ contains
          return
       end if
       var(:,:,:,:,:) = huge(1._kind_phys)
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1657,7 +1721,15 @@ contains
          return
       end if
       var(:) = 'UNSET'
-      errcode = pio_get_var(pio_file_handle, var_id, var(:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1795,7 +1867,15 @@ contains
          return
       end if
       var(:,:) = 'UNSET'
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -1935,7 +2015,15 @@ contains
          return
       end if
       var(:,:,:) = 'UNSET'
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -2074,7 +2162,15 @@ contains
          return
       end if
       var(:,:,:,:) = 'UNSET'
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:))
+
+      if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
@@ -2213,7 +2309,15 @@ contains
          return
       end if
       var(:,:,:,:,:) = 'UNSET'
-      errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:,:))
+
+       if (do_subset) then
+         !If subsetting is requested, then read only the specified
+         !subset of the variable:
+         errcode = pio_get_var(pio_file_handle, var_id, start, count, var(:,:,:,:,:))
+      else
+         !Otherwise, read the entire variable:
+         errcode = pio_get_var(pio_file_handle, var_id, var(:,:,:,:,:))
+      end if
 
       if (errcode /= PIO_NOERR) then
          !Extract error message from PIO:
