@@ -1413,6 +1413,10 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     character(len=*), parameter :: fname = &
     "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
+    ! Variable values to compare against:
+    real(kind_phys), parameter :: expected_press_ref_1 = 18127.2241875_kind_phys
+    real(kind_phys), parameter :: expected_press_ref_2 = 14841.3159102_kind_phys
+
     ! Begin test:
 
     reader => create_netcdf_reader_t()
@@ -1432,9 +1436,8 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     @assertEqual(2, size(press_ref))
 
     ! Check that the variable's values are correct:
-    write(*,*) "press_ref values = ", press_ref(:)
-    @assertEqual(18127.2241875, press_ref(1), tolerance=1.0e-7)
-    @assertEqual(14841.3159102, press_ref(2), tolerance=1.0e-7)
+    @assertEqual(expected_press_ref_1, press_ref(1), tolerance=1.0e-7)
+    @assertEqual(expected_press_ref_2, press_ref(2), tolerance=1.0e-7)
 
     ! Perform test cleanup:
     deallocate(press_ref)
