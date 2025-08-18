@@ -1432,7 +1432,6 @@ subroutine test_pio_reader_1d_real_full_subset_read()
     @assertEqual(2, size(press_ref))
 
     ! Check that the variable's values are correct:
-    !@assertEqual(18127.2241875, press_ref(1), tolerance=1.0e-7)
     @assertEqual(press_ref(1), 18127.2241875, tolerance=1.0e-7)
     @assertEqual(14841.3159102, press_ref(2), tolerance=1.0e-7)
 
