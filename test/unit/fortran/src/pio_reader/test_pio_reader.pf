@@ -1447,6 +1447,67 @@ subroutine test_pio_reader_1d_real_full_subset_read()
 
 end subroutine test_pio_reader_1d_real_full_subset_read
 
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_1d_real_dim_reduce_subset_read
+    !Check that the PIO reader can read a 2D real variable
+    !from a file and subset the data into a 1D output variable.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    use ccpp_kinds,     only: kind_phys
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    !Variable to be read:
+    real(kind_phys), allocatable :: vmr_ref_1D(:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Variable values to compare against:
+    real(kind_phys), parameter :: expected_vmr_ref_1 = 1._kind_phys
+    real(kind_phys), parameter :: expected_vmr_ref_2 = 1._kind_phys
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 1D integer variable:
+    call reader%get_var("vmr_ref", vmr_ref_1D, errmsg, errcode, start=(/1,1,1/), count=(/2,1,1/))
+
+    ! Check that the variable was read successfully:
+    @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(allocated(vmr_ref_1D))
+    @assertEqual(2, size(vmr_ref_1D))
+
+    ! Check that the variable's values are correct:
+    @assertEqual(expected_vmr_ref_1, vmr_ref_1D(1), tolerance=1.0e-7)
+    @assertEqual(expected_vmr_ref_2, vmr_ref_1D(2), tolerance=1.0e-7)
+
+    ! Perform test cleanup:
+    deallocate(vmr_ref_1D)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_1d_real_dim_reduce_subset_read
+
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader variable subsetting error tests
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++

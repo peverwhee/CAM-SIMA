@@ -2609,6 +2609,21 @@ contains
             return
          end if
 
+         !Number of "true" dimensions in count is correct, so let's
+         !allocate alloc_dims to match the "count" array ignoring dimensions
+         !with a value of 1:
+         allocate(alloc_dims(count_true_dim_num), stat=errcode, errmsg=errmsg)
+         if(errcode /= 0) then
+            return !Error allocating alloc_dims, so return.
+         end if
+
+         do i=1, size(count)
+            if (count(i) > 1) then
+               alloc_dims(i) = count(i)
+            end if
+         end do
+         return !Nothing more to do here.
+
       else if (size(count) < var_ndims) then
          !I don't think this should ever happen as
          !we have already checked that count matches
