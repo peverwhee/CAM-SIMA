@@ -1467,7 +1467,7 @@ subroutine test_pio_reader_1d_real_dim_reduce_subset_read
     character(len=256) :: errmsg
 
     !Variable to be read:
-    real(kind_phys), allocatable :: vmr_ref_1D(:)
+    real(kind_phys), allocatable :: vmr_ref_1D(:,:,:)
 
     ! File name for testing:
     ! NOTE: This specific file is added during the Github Actions workflow.
@@ -1497,8 +1497,8 @@ subroutine test_pio_reader_1d_real_dim_reduce_subset_read
     @assertEqual(2, size(vmr_ref_1D))
 
     ! Check that the variable's values are correct:
-    @assertEqual(expected_vmr_ref_1, vmr_ref_1D(1), tolerance=1.0e-7)
-    @assertEqual(expected_vmr_ref_2, vmr_ref_1D(2), tolerance=1.0e-7)
+    @assertEqual(expected_vmr_ref_1, vmr_ref_1D(1,1,1), tolerance=1.0e-7)
+    @assertEqual(expected_vmr_ref_2, vmr_ref_1D(2,1,1), tolerance=1.0e-7)
 
     ! Perform test cleanup:
     deallocate(vmr_ref_1D)
