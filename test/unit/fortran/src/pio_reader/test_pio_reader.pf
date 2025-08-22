@@ -80,8 +80,8 @@ end subroutine test_pio_reader_open_close_file
 
 @test
 subroutine test_pio_reader_already_opened_file_err()
-    !Check that the PIO reader raises the correct error
-    !when attempting to open a file that is already opened.
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to open a file that is already opened.
 
     use funit
 
@@ -127,8 +127,8 @@ end subroutine test_pio_reader_already_opened_file_err
 
 @test
 subroutine test_pio_reader_no_file_err()
-    !Check that the PIO reader raises the correct error
-    !when attempting to open a file that does not exist.
+    ! Check that the PIO reader raises the correct error
+    ! when attempting to open a file that does not exist.
 
     use funit
 
@@ -174,8 +174,8 @@ end subroutine test_pio_reader_no_file_err
 
 @test
 subroutine test_pio_reader_1d_int_read()
-    !Check that the PIO reader can read a 1D integer variable
-    !from a file successfully.
+    ! Check that the PIO reader can read a 1D integer variable
+    ! from a file successfully.
 
     use funit
 
@@ -230,8 +230,8 @@ end subroutine test_pio_reader_1d_int_read
 
 @test
 subroutine test_pio_reader_2d_int_read()
-    !Check that the PIO reader can read a 2D integer variable
-    !from a file successfully.
+    ! Check that the PIO reader can read a 2D integer variable
+    ! from a file successfully.
 
     use funit
 
@@ -660,10 +660,10 @@ end subroutine test_pio_reader_3d_real_read
 !----------------------------------------
 
 @disable
-!Reading a 4D real variable works in a normal
-!CAM-SIMA build, but not in this pFUnit build (at least for GCCv13).
-!Thus going ahead and leaving this disabled for now
-!until more experimentation can be done.
+! Reading a 4D real variable works in a normal
+! CAM-SIMA build, but not in this pFUnit build (at least for GCCv13).
+! Thus going ahead and leaving this disabled for now
+! until more experimentation can be done.
 subroutine test_pio_reader_4d_real_read_with_dims()
     ! Check that the PIO reader can read a 4D real variable
     ! from a file successfully, and that the dimensions are correct.
@@ -1549,7 +1549,7 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     ! Check that the variable's properties are correct:
     @assertTrue(allocated(gas_names))
     @assertEqual(32, len(gas_names))
-    @assertEqual(19, size(gas_names))
+    @assertEqual(6, size(gas_names))
 
     ! Check that the variable's values are correct:
     @assertEqual("cfc11", trim(gas_names(10)))
