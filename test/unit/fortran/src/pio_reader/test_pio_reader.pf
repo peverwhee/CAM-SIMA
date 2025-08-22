@@ -1542,7 +1542,10 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     call reader%open_file(fname, errmsg, errcode)
 
     ! Read 1D character variable:
-    call reader%get_var("gas_names", gas_names, errmsg, errcode, start=(/10/), count=(/6/))
+    ! NOTE: character variable subsetting requires passing in
+    ! the string Length as the first dimension of the start and
+    ! count arrays.
+    call reader%get_var("gas_names", gas_names, errmsg, errcode, start=(/1,10/), count=(/32,6/))
 
     ! Check that the variable was read successfully:
     @assertEqual('', errmsg)

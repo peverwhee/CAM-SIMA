@@ -1739,7 +1739,9 @@ contains
       !Check if variable subsetting is requested and valid
       !Note that this involves ignoring the first dimension,
       !which is just the character length:
-      call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      !call var_subset_check(varname, var_ndims, dim_sizes(2:), do_subset, alloc_dims, errmsg, errcode, start, count)
+      call var_subset_check(varname, var_ndims, dim_sizes, do_subset, alloc_dims, errmsg, errcode, start, count)
+
       if (errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
@@ -1750,7 +1752,9 @@ contains
       !read-in the NetCDF data. Note that the first dimension
       !of dim_sizes is the length of the character variable,
       !and is not included in the 'alloc_dims' array.
-      allocate(character(dim_sizes(1)) :: var(alloc_dims(1)), stat=errcode, errmsg=errmsg)
+      allocate(character(alloc_dims(1)) :: var(alloc_dims(2)), stat=errcode, errmsg=errmsg)
+      !allocate(character(dim_sizes(1)) :: var(alloc_dims(1)), stat=errcode, errmsg=errmsg)
+
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
