@@ -1532,6 +1532,8 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     character(len=*), parameter :: fname = &
     "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
+    integer :: i !DEBUGGING -JN
+
     ! Begin test:
 
     reader => create_netcdf_reader_t()
@@ -1550,6 +1552,11 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     @assertTrue(allocated(gas_names))
     @assertEqual(32, len(gas_names))
     @assertEqual(6, size(gas_names))
+
+    ! DEBUGGING -JN
+    do i=1, size(gas_names)
+       write(*,*) "gas_names(", i, ") = '", trim(gas_names(i)), "'"
+    end do
 
     ! Check that the variable's values are correct:
     @assertEqual("cfc11", trim(gas_names(10)))
