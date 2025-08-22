@@ -1562,12 +1562,12 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     end do
 
     ! Check that the variable's values are correct:
-    @assertEqual("cfc11", trim(gas_names(10)))
-    @assertEqual("cfc12", trim(gas_names(11)))
-    @assertEqual("cfc22", trim(gas_names(12)))
-    @assertEqual("hfc143a", trim(gas_names(13)))
-    @assertEqual("hfc125", trim(gas_names(14)))
-    @assertEqual("hfc23", trim(gas_names(15)))
+    @assertEqual("cfc11", trim(gas_names(1)))
+    @assertEqual("cfc12", trim(gas_names(2)))
+    @assertEqual("cfc22", trim(gas_names(3)))
+    @assertEqual("hfc143a", trim(gas_names(4)))
+    @assertEqual("hfc125", trim(gas_names(5)))
+    @assertEqual("hfc23", trim(gas_names(6)))
 
 
     ! Perform test cleanup:
