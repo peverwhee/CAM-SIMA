@@ -1173,7 +1173,7 @@ subroutine test_pio_reader_char_get_var_bad_rank()
 
     ! Expected error message:
     character(len=*), parameter :: expected_err_msg = &
-        "Variable 'gas_names' isn't declared with the correct number of dimensions. Expected 1 dimensions, but is declared with 2 dimensions."
+        "Variable 'gas_names' isn't declared with the correct number of dimensions. Expected 2 dimensions, but is declared with 3 dimensions."
 
 
     ! Begin test:
