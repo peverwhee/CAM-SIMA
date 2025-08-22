@@ -2498,23 +2498,21 @@ contains
       !Determin the total number of dimensions for variable on file:
       file_var_dim_num = size(dim_sizes)
 
+      !Check that the variable rank as specified by the caller
+      !matches what is found on the NetCDF file:
+      if(file_var_dim_num /= var_ndims) then
+         errcode = bad_var_rank_err
+         write(errmsg, '(4a,i0,a,i0,a)') &
+            "Variable '",trim(varname),"' isn't declared with the correct number of dimensions.", &
+            " Expected ", file_var_dim_num, " dimensions, but is declared with ", &
+            var_ndims, " dimensions."
+         return
+      end if
+
       !If both start and count are not present,
-      !then check for matching ranks, and set alloc_dims
-      !to have the same dimensionality as the file variable:
+      !then set alloc_dims to have the same 
+      !dimensionality as the file variable:
       if (.not. present(start) .and. .not. present(count)) then
-
-         !Check that the variable rank as specified by the caller
-         !matches what is found on the NetCDF file:
-         if(file_var_dim_num /= var_ndims) then
-            errcode = bad_var_rank_err
-            write(errmsg, '(4a,i0,a,i0,a)') &
-               "Variable '",trim(varname),"' isn't declared with the correct number of dimensions.", &
-               " Expected ", file_var_dim_num, " dimensions, but is declared with ", &
-               var_ndims, " dimensions."
-            return
-         end if
-
-         !Allocate "alloc_dims" to exactly match the file variable dimensions:
          allocate(alloc_dims, source=dim_sizes, stat=errcode, errmsg=errmsg)
          return !Nothing more to do here.
       end if
@@ -2576,63 +2574,11 @@ contains
          end if
       end do
 
-      !Check if count has the same number of elements as the output variable:
-      if (size(count) == var_ndims) then
-
-         !If so, then Start and Count are good,
-         !so notify caller that subsetting
-         !will occur, and set alloc_dims to match 'count':
-         do_subset = .true.
-         allocate(alloc_dims, source=count, stat=errcode, errmsg=errmsg)
-         return !Nothing more to do here.
-
-      else if (size(count) > var_ndims) then
-
-         !The subsetting appears to be reducing
-         !the dimensionality of the file variable.
-         !Thus make sure that the number of dimensions
-         !with more than a count of "1" matches
-         !the output variable's dimensionality:
-         count_true_dim_num = 0
-         do i=1, size(count)
-            if (count(i) > 1) then
-               count_true_dim_num = count_true_dim_num + 1
-            end if
-         end do
-
-         if (count_true_dim_num > var_ndims) then
-            errcode = bad_subset_num_elem_err
-            write(errmsg, '(3a,i0,a,i0,a)') &
-            "The 'count' array for variable '", trim(varname), &
-            "' has too many elements with a value greater than one.  Expected at most ", &
-            var_ndims, " but got ", count_true_dim_num, "."
-            return
-         end if
-
-         !Number of "true" dimensions in count is correct, so let's
-         !allocate alloc_dims to match the "count" array ignoring dimensions
-         !with a value of 1:
-         allocate(alloc_dims(count_true_dim_num), stat=errcode, errmsg=errmsg)
-         if(errcode /= 0) then
-            return !Error allocating alloc_dims, so return.
-         end if
-
-         do i=1, size(count)
-            if (count(i) > 1) then
-               alloc_dims(i) = count(i)
-            end if
-         end do
-         return !Nothing more to do here.
-
-      else if (size(count) < var_ndims) then
-         !I don't think this should ever happen as
-         !we have already checked that count matches
-         !file_var_dim num, but just in case let's
-         !throw an error here:
-         errcode = bad_subset_num_elem_err
-         errmsg = "The number of elements in the 'count' array for variable '"//trim(varname)//"' has too few dimensions."
-         return
-      end if
+      !If so, then Start and Count are good,
+      !so notify caller that subsetting
+      !will occur, and set alloc_dims to match 'count':
+      do_subset = .true.
+      allocate(alloc_dims, source=count, stat=errcode, errmsg=errmsg)
 
    end subroutine var_subset_check
 
