@@ -337,7 +337,7 @@ CONTAINS
                           min_relative_value, is_first, diff_found)
 
                   case ('scalar_variable_llama')
-                     ! do nothing - 'var_nodim' can't be checked against a file
+                     ! do nothing - 'var_nodim' can't be checked against a file because var_nodim has no horizontal dimension
 
                   end select !check variables
                   if (diff_found) then

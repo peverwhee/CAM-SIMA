@@ -1255,7 +1255,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
             call_str += "min_difference, min_relative_value, is_first, diff_found)"
         else:
             # For check field, don't endrun
-            call_str = f"! do nothing - '{var_locname}' can't be checked against a file"
+            call_str = f"! do nothing - '{var_locname}' can't be checked against a file because {reason}"
         # end if
         # Add string to dictionary:
         call_string_dict[call_string_key] = call_str
