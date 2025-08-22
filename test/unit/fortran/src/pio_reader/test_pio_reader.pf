@@ -1255,9 +1255,9 @@ end subroutine test_pio_reader_real_get_var_bad_rank
 
 @test
 subroutine test_pio_reader_1d_int_full_subset_read()
-    !Check that the PIO reader can read a 1D integer variable
-    !from a file successfully with subsetting that has
-    !a count array with the same rank as the output variable.
+    ! Check that the PIO reader can read a 1D integer variable
+    ! from a file successfully with subsetting that has
+    ! a count array with the same rank as the output variable.
 
     use funit
 
@@ -1314,8 +1314,8 @@ end subroutine test_pio_reader_1d_int_full_subset_read
 
 @test
 subroutine test_pio_reader_2d_int_full_subset_read()
-    !Check that the PIO reader can read a 2D integer variable
-    !from a file successfully.
+    ! Check that the PIO reader can read a 2D integer variable
+    ! from a file successfully.
 
     use funit
 
@@ -1389,8 +1389,8 @@ end subroutine test_pio_reader_2d_int_full_subset_read
 
 @test
 subroutine test_pio_reader_1d_real_full_subset_read()
-    !Check that the PIO reader can read a 1D real variable
-    !from a file successfully with subsetting.
+    ! Check that the PIO reader can read a 1D real variable
+    ! from a file successfully with subsetting.
 
     use funit
 
@@ -1450,8 +1450,8 @@ end subroutine test_pio_reader_1d_real_full_subset_read
 
 @test
 subroutine test_pio_reader_3d_real_full_subset_read
-    !Check that the PIO reader can read a 3D real variable
-    !from a file successfully with subsetting.
+    ! Check that the PIO reader can read a 3D real variable
+    ! from a file successfully with subsetting.
 
     use funit
 
@@ -1465,7 +1465,7 @@ subroutine test_pio_reader_3d_real_full_subset_read
     integer            :: errcode
     character(len=256) :: errmsg
 
-    !Variable to be read:
+    ! Variable to be read:
     real(kind_phys), allocatable :: vmr_ref(:,:,:)
 
     ! File name for testing:
@@ -1506,6 +1506,67 @@ subroutine test_pio_reader_3d_real_full_subset_read
     nullify(reader)
 
 end subroutine test_pio_reader_3d_real_full_subset_read
+
+!----------------------------------------
+
+@test
+subroutine test_pio_reader_1d_char_full_subset_read()
+    ! Check that the PIO reader can read a 3D real
+    ! variable from a file successfully with subsetting.
+
+    use funit
+
+    use ccpp_io_reader, only: abstract_netcdf_reader_t
+    use ccpp_io_reader, only: create_netcdf_reader_t
+
+    class(abstract_netcdf_reader_t), pointer :: reader
+
+    integer            :: errcode
+    character(len=256) :: errmsg
+
+    ! Variable to be read:
+    character(len=:), allocatable :: gas_names(:)
+
+    ! File name for testing:
+    ! NOTE: This specific file is added during the Github Actions workflow.
+    character(len=*), parameter :: fname = &
+    "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
+
+    ! Begin test:
+
+    reader => create_netcdf_reader_t()
+
+    ! Open file:
+    call reader%open_file(fname, errmsg, errcode)
+
+    ! Read 1D character variable:
+    call reader%get_var("gas_names", gas_names, errmsg, errcode, start=(/10/), count=(/6/))
+
+    ! Check that the variable was read successfully:
+    @assertEqual('', errmsg)
+    @assertEqual(0, errcode)
+
+    ! Check that the variable's properties are correct:
+    @assertTrue(allocated(gas_names))
+    @assertEqual(32, len(gas_names))
+    @assertEqual(19, size(gas_names))
+
+    ! Check that the variable's values are correct:
+    @assertEqual("cfc11", trim(gas_names(10)))
+    @assertEqual("cfc12", trim(gas_names(11)))
+    @assertEqual("cfc22", trim(gas_names(12)))
+    @assertEqual("hfc143a", trim(gas_names(13)))
+    @assertEqual("hfc125", trim(gas_names(14)))
+    @assertEqual("hfc23", trim(gas_names(15)))
+
+
+    ! Perform test cleanup:
+    deallocate(gas_names)
+    call reader%close_file(errmsg, errcode)
+    deallocate(reader)
+    nullify(reader)
+
+end subroutine test_pio_reader_1d_char_read
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !PIO reader variable subsetting error tests
