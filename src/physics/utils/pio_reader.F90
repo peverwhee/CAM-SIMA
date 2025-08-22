@@ -215,6 +215,15 @@ contains
          return
       end if
 
+      !Make sure the caller isn't trying to subset a scalar variable:
+      if (present(start) .or. present(count)) then
+         errcode = bad_subset_num_elem_err
+         errmsg  = "Variable '"//trim(varname)//"' is a scalar variable, so start and count arguments must not be provided."
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
       !read-in the NetCDF data:
       allocate(var, stat=errcode, errmsg=errmsg)
@@ -881,6 +890,15 @@ contains
       if(ndims /= 0) then
          errcode = bad_var_rank_err
          errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
+      !Make sure the caller isn't trying to subset a scalar variable:
+      if (present(start) .or. present(count)) then
+         errcode = bad_subset_num_elem_err
+         errmsg  = "Variable '"//trim(varname)//"' is a scalar variable, so start and count arguments must not be provided."
          !Reset PIO back to original error handling method:
          call pio_seterrorhandling(pio_file_handle, err_handling)
          return
@@ -1572,10 +1590,28 @@ contains
          return
       end if
 
+      !Check that the variable rank as specified by the caller
+      !matches what is found on the NetCDF file:
+      if(size(dim_sizes) /= 1) then
+         errcode = bad_var_rank_err
+         errmsg  = "Variable '"//trim(varname)//"' isn't declared with the correct number of dimensions"
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
+      !Make sure the caller isn't trying to subset a scalar variable:
+      if (present(start) .or. present(count)) then
+         errcode = bad_subset_num_elem_err
+         errmsg  = "Variable '"//trim(varname)//"' is a scalar variable, so start and count arguments must not be provided."
+         !Reset PIO back to original error handling method:
+         call pio_seterrorhandling(pio_file_handle, err_handling)
+         return
+      end if
+
       !Now attempt to allocate and initialize variable, and
-      !read-in the NetCDF data.  Note that the first dimenstion
-      !is the length of the character array, so need to start
-      !the dim_sizes allocation count at index two:
+      !read-in the NetCDF data. Note that the given dimension
+      !is the length of the character array for a scalar variable:
       allocate(character(dim_sizes(1)) :: var, stat=errcode, errmsg=errmsg)
       if(errcode /= 0) then
          !Reset PIO back to original error handling method:
