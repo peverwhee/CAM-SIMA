@@ -1532,8 +1532,6 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     character(len=*), parameter :: fname = &
     "../../../rrtmgp-data/rrtmgp-gas-sw-g112.nc"
 
-    integer :: i !DEBUGGING -JN
-
     ! Begin test:
 
     reader => create_netcdf_reader_t()
@@ -1556,11 +1554,6 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     @assertEqual(32, len(gas_names))
     @assertEqual(6, size(gas_names))
 
-    ! DEBUGGING -JN
-    do i=1, size(gas_names)
-       write(*,*) "gas_names(", i, ") = '", trim(gas_names(i)), "'"
-    end do
-
     ! Check that the variable's values are correct:
     @assertEqual("cfc11", trim(gas_names(1)))
     @assertEqual("cfc12", trim(gas_names(2)))
@@ -1568,7 +1561,6 @@ subroutine test_pio_reader_1d_char_full_subset_read()
     @assertEqual("hfc143a", trim(gas_names(4)))
     @assertEqual("hfc125", trim(gas_names(5)))
     @assertEqual("hfc23", trim(gas_names(6)))
-
 
     ! Perform test cleanup:
     deallocate(gas_names)
@@ -1680,7 +1672,7 @@ subroutine test_pio_reader_missing_count_argument()
 
 end subroutine test_pio_reader_missing_count_argument
 
-!-----------------------------------------  
+!-----------------------------------------
 
 @test
 subroutine test_pio_reader_0d_real_subset_err()
