@@ -66,7 +66,8 @@ CONTAINS
       reallocate = .false.
     end if
 
-    if (set_init_val) then
+    if (set_init_val .and. .not. is_initialized('horizontal_dimension',                           &
+         error_on_not_found=.false.)) then
       ncol = 0
     end if
     if (associated(latitude)) then
@@ -78,7 +79,7 @@ CONTAINS
       end if
     end if
     allocate(latitude(horizontal_dimension))
-    if (set_init_val) then
+    if (set_init_val .and. .not. is_initialized('latitude', error_on_not_found=.false.)) then
       latitude = nan
     end if
     if (associated(longitude)) then
@@ -90,7 +91,7 @@ CONTAINS
       end if
     end if
     allocate(longitude(horizontal_dimension))
-    if (set_init_val) then
+    if (set_init_val .and. .not. is_initialized('longitude', error_on_not_found=.false.)) then
       longitude = nan
     end if
   end subroutine allocate_physics_types_parameter_fields

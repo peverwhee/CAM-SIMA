@@ -33,20 +33,21 @@ module phys_vars_init_check_simple
    integer, public, parameter ::          PARAM = 2
    integer, public, parameter :: READ_FROM_FILE = 3
    ! Total number of physics-related variables:
-   integer, public, parameter :: phys_var_num = 3
+   integer, public, parameter :: phys_var_num = 4
    integer, public, parameter :: phys_const_num = 16
 
    !Max length of physics-related variable standard names:
    integer, public, parameter :: std_name_len = 25
 
    ! Max length of input (IC) file variable names:
-   integer, public, parameter :: ic_name_len = 5
+   integer, public, parameter :: ic_name_len = 9
 
    ! Physics-related input variable standard names:
    character(len=25), public, protected :: phys_var_stdnames(phys_var_num) = (/ &
       'potential_temperature    ', &
       'air_pressure_at_sea_level', &
-      'tendency_of_peverwhee    ' /)
+      'tendency_of_peverwhee    ', &
+      'scalar_variable_llama    ' /)
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = (/ &
       "ccpp_constituent_minimum_values     ", &
@@ -66,19 +67,22 @@ module phys_vars_init_check_simple
       "suite_name                          ", &
       "suite_part                          " /)
    !Array storing all registered IC file input names for each variable:
-   character(len=5), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
-      'theta', &
-      'slp  ', &
-      'ptend' /), (/1, phys_var_num/))
+   character(len=9), public, protected :: input_var_names(1, phys_var_num) = reshape((/ &
+      'theta    ', &
+      'slp      ', &
+      'ptend    ', &
+      'var_nodim' /), (/1, phys_var_num/))
 
    ! Array indicating whether or not variable is protected:
    logical, public, protected :: protected_vars(phys_var_num)= (/ &
+      .false., &
       .false., &
       .false., &
       .false. /)
 
    ! Variable state (UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE):
    integer, public, protected :: initialized_vars(phys_var_num)= (/ &
+      UNINITIALIZED, &
       UNINITIALIZED, &
       UNINITIALIZED, &
       UNINITIALIZED /)
@@ -155,7 +159,7 @@ CONTAINS
 
    end subroutine mark_as_read_from_file
 
-   logical function is_initialized(varname)
+   logical function is_initialized(varname, error_on_not_found)
 
       ! This function checks if the variable, <varname>, is already
       !    initialized according to the 'initialized_vars' array.
@@ -164,14 +168,22 @@ CONTAINS
 
       ! Dummy argument
       character(len=*), intent(in) :: varname ! Variable name being checked
+      logical, optional, intent(in) :: error_on_not_found
 
       ! Local variables
       integer                     :: stdnam_idx ! Standard name array index
       logical                     :: found      ! Check that <varname> was found
+      logical                     :: error_on_not_found_loc
       character(len=*), parameter :: subname = 'is_initialized: '
 
       is_initialized = .false.
       found = .false.
+
+      if (present(error_on_not_found)) then
+         error_on_not_found_loc = error_on_not_found
+      else
+         error_on_not_found_loc = .true.
+      end if
 
       ! Check if variable is initialized (PARAM, INITIALIZED, or READ_FROM_FILE)
       do stdnam_idx = 1, phys_var_num
@@ -182,7 +194,7 @@ CONTAINS
          end if
       end do
 
-      if (.not. found) then
+      if (.not. found .and. error_on_not_found_loc) then
          ! This condition is an internal error, it should not happen
          call endrun(subname//": Variable '"//trim(varname)//                 &
               "' is missing from phys_var_stdnames array.")

@@ -1255,7 +1255,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
             call_str += "min_difference, min_relative_value, is_first, diff_found)"
         else:
             # For check field, don't endrun
-            call_str = "! do nothing - variable can't be checked"
+            call_str = f"! do nothing - '{var_locname}' can't be checked against a file because {reason}"
         # end if
         # Add string to dictionary:
         call_string_dict[call_string_key] = call_str
@@ -1418,7 +1418,7 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     # Generate error message if required variable isn't found:
     outfile.write("case (no_exist_idx)", 5)
     outfile.blank_line()
-    outfile.comment("If an index was never found, then do nothing. We won't try to check these.", 6)
+    outfile.comment("If the index for an output variable was not found, then do nothing. We won't try to check these.", 6)
     outfile.blank_line()
 
     # start default case steps:
