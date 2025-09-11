@@ -44,6 +44,7 @@ module atm_comp_nuopc
    use cam_comp            , only : cam_init, cam_run1, cam_run2, cam_run3, cam_run4, cam_final
    use cam_comp            , only : cam_timestep_init, cam_timestep_final
    use physics_types       , only : cam_out_t, cam_in_t
+   use physics_types       , only : cam_out, cam_in
 !   use radiation           , only : nextsw_cday  !uncomment once radiation has been CCPP-ized -JN
    use cam_logfile         , only : cam_set_log_unit, iulog
    use cam_abortutils      , only : check_allocate
@@ -108,8 +109,6 @@ module atm_comp_nuopc
   integer                      :: nthrds
   integer                      :: ierr                ! allocate status
   integer         , parameter  :: dbug_flag = 0
-  type(cam_in_t)  , pointer    :: cam_in
-  type(cam_out_t) , pointer    :: cam_out
   integer         , pointer    :: dof(:)              ! global index space decomposition
   character(len=256)           :: rsfilename_spec_cam ! Filename specifier for restart surface file
   character(*)    ,parameter   :: modName =  "(atm_comp_nuopc)"

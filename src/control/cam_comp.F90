@@ -145,8 +145,8 @@ CONTAINS
       integer, intent(in)      :: ref_ymd       ! Reference date (YYYYMMDD)
       integer, intent(in)      :: ref_tod       ! Reference time of day (sec)
 
-      type(cam_out_t), pointer :: cam_out       ! Output from CAM to surface
-      type(cam_in_t),  pointer :: cam_in        ! Merged input state to CAM
+      type(cam_out_t) :: cam_out       ! Output from CAM to surface
+      type(cam_in_t)  :: cam_in        ! Merged input state to CAM
 
       ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
@@ -357,8 +357,8 @@ CONTAINS
       use phys_comp, only: phys_run1
 !      use ionosphere_interface, only: ionosphere_run1
 
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
+      type(cam_in_t),  intent(inout) :: cam_in  ! Input from surface to CAM
+      type(cam_out_t), intent(inout) :: cam_out ! Output from CAM to surface
 
       !----------------------------------------------------------
       ! first phase of ionosphere -- write to IC file if needed
@@ -396,8 +396,8 @@ CONTAINS
       use stepon,    only: stepon_run2
 !      use ionosphere_interface, only: ionosphere_run2
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
-      type(cam_in_t),  pointer, intent(inout) :: cam_in  ! Input from surface to CAM
+      type(cam_out_t), intent(inout) :: cam_out ! Output from CAM to surface
+      type(cam_in_t),  intent(inout) :: cam_in  ! Input from surface to CAM
 
       !
       ! Second phase of physics (after surface model update)
@@ -439,7 +439,7 @@ CONTAINS
       !-----------------------------------------------------------------------
       use stepon, only: stepon_run3
 
-      type(cam_out_t), pointer, intent(inout) :: cam_out ! Output from CAM to surface
+      type(cam_out_t), intent(inout) :: cam_out ! Output from CAM to surface
       !-----------------------------------------------------------------------
 
       !
@@ -564,8 +564,8 @@ CONTAINS
       !
       ! Arguments
       !
-      type(cam_out_t), pointer :: cam_out ! Output from CAM to surface
-      type(cam_in_t),  pointer :: cam_in  ! Input from merged surface to CAM
+      type(cam_out_t) :: cam_out ! Output from CAM to surface
+      type(cam_in_t)  :: cam_in  ! Input from merged surface to CAM
 
       !-----------------------------------------------------------------------
 
