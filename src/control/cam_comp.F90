@@ -145,8 +145,8 @@ CONTAINS
       integer, intent(in)      :: ref_ymd       ! Reference date (YYYYMMDD)
       integer, intent(in)      :: ref_tod       ! Reference time of day (sec)
 
-      type(cam_out_t) :: cam_out       ! Output from CAM to surface
-      type(cam_in_t)  :: cam_in        ! Merged input state to CAM
+      type(cam_out_t), intent(inout) :: cam_out       ! Output from CAM to surface
+      type(cam_in_t) , intent(inout)  :: cam_in       ! Merged input state to CAM
 
       ! Local variables
       character(len=cs)        :: filein        ! Input namelist filename
