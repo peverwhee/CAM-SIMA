@@ -128,7 +128,7 @@
     </machines>
     <options>
       <option name="wallclock">00:10:00</option>
-      <option name="comment">Dry adiabatic (no physics forcings)</option>
+      <option name="comment">Test for SE-CSLAM dycore with dry adiabatic settings (no physics forcings)</option>
     </options>
   </test>
 
