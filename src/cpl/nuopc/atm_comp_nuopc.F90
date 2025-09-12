@@ -662,9 +662,7 @@ contains
          stop_ymd=stop_ymd,                           &
          stop_tod=stop_tod,                           &
          curr_ymd=curr_ymd,                           &
-         curr_tod=curr_tod,                           &
-         cam_out=cam_out,                             &
-         cam_in=cam_in)
+         curr_tod=curr_tod)
 
     if (mediator_present) then
 
@@ -916,7 +914,7 @@ contains
           call import_fields( gcomp, cam_in, rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call cam_timestep_init()
-          call cam_run1 ( cam_in, cam_out )
+          call cam_run1 ()
           call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        else
@@ -925,7 +923,7 @@ contains
           call import_fields( gcomp, cam_in, restart_init=.true., rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
           call cam_timestep_init()
-          call cam_run1 ( cam_in, cam_out )
+          call cam_run1 ()
           call export_fields( gcomp, model_mesh, model_clock, cam_out, rc=rc )
           if (ChkErr(rc,__LINE__,u_FILE_u)) return
        end if
@@ -978,7 +976,7 @@ contains
     !---------------------------------------------------------------
 
        call cam_timestep_init()
-       call cam_run1 ( cam_in, cam_out )
+       call cam_run1 ()
 
        call NUOPC_CompAttributeSet(gcomp, name="InitializeDataComplete", value="true", rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -1154,15 +1152,15 @@ contains
        ! This includes the "physics_after_coupler" CCPP physics group.
 
        call t_startf ('CAM_run2')
-       call cam_run2( cam_out, cam_in )
+       call cam_run2()
        call t_stopf  ('CAM_run2')
 
        call t_startf ('CAM_run3')
-       call cam_run3( cam_out )
+       call cam_run3()
        call t_stopf  ('CAM_run3')
 
        call t_startf ('CAM_run4')
-       call cam_run4( cam_out, cam_in, rstwr, nlend, &
+       call cam_run4( rstwr, nlend, &
             yr_spec=yr_sync, mon_spec=mon_sync, day_spec=day_sync, sec_spec=tod_sync)
        call t_stopf  ('CAM_run4')
        call cam_timestep_final(rstwr, nlend, do_ncdata_check=do_ncdata_check)
@@ -1178,7 +1176,7 @@ contains
        ! This includes the "physics_before_coupler" CCPP physics group.
 
        call t_startf ('CAM_run1')
-       call cam_run1 ( cam_in, cam_out )
+       call cam_run1 ()
        call t_stopf  ('CAM_run1')
 
     end do
@@ -1451,7 +1449,7 @@ contains
     endif
 
     call cam_timestep_final(rstwr, nlend, do_ncdata_check=.false., do_history_write=.false.)
-    call cam_final(cam_out, cam_in)
+    call cam_final()
 
     if (masterproc) then
        write(iulog,F91)
