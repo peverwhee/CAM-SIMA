@@ -283,6 +283,7 @@ def execute_subprocess(commands, status_to_caller=False, output_to_caller=False)
         kwargs={"working_directory": cwd, "command": commands_str},
     )
     hanging_timer.start()
+    print("What are the commands? -JN", commands) #Debug -JN
     try:
         output = subprocess.check_output(
             commands, stderr=subprocess.STDOUT, universal_newlines=True
