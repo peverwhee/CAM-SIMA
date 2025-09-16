@@ -399,13 +399,9 @@ class Submodule():
                 if not set(self.fxtag) <= allowed:
                     # This is a tag
                     tag = f"refs/tags/{self.fxtag}:refs/tags/{self.fxtag}"
-                    #status,_ = smgit.git_operation("fetch", newremote, tag)
-                    status, jn = smgit.git_operation("fetch", newremote, tag)
-                    print("Successfully fetch tag? -JN", status, jn, self.fxtag) #DEBUG -JN
+                    status,_ = smgit.git_operation("fetch", newremote, tag)
                 if status == 0:
-                    #status,_ = smgit.git_operation("checkout", self.fxtag)
-                    status,jn = smgit.git_operation("checkout", self.fxtag)
-                    print("Successfully checkout tag? -JN", status, jn, self.fxtag) #DEBUG -JN
+                    status,_ = smgit.git_operation("checkout", self.fxtag)
                 if status:
                     utils.fatal_error(
                         f"Failed to checkout {self.name} at tag or hash {self.fxtag} from {repodir}"
