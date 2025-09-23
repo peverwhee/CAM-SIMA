@@ -1610,31 +1610,6 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>DES pbuf_DES</ic_file_input_names>
     </variable>
-    <variable local_name="nlwgpts"
-              standard_name="number_of_longwave_g_point_intervals"
-              units="count" type="integer">
-      <initial_value>-1</initial_value>
-    </variable>
-    <variable local_name="nswgpts"
-	      standard_name="number_of_shortwave_g_point_intervals"
-	      units="count" type="integer">
-      <initial_value>-1</initial_value>
-    </variable>
-    <variable local_name="nlay"
-	      standard_name="number_of_vertical_layers_in_rrtmgp"
-	      units="count" type="integer">
-      <initial_value>-1</initial_value>
-    </variable>
-    <variable local_name="nlayp"
-	      standard_name="number_of_vertical_layers_in_rrtmgp_plus_one"
-	      units="count" type="integer">
-      <initial_value>-1</initial_value>
-    </variable>
-    <variable local_name="nday"
-	      standard_name="daytime_points_dimension"
-	      units="count" type="integer">
-      <initial_value>-1</initial_value>
-    </variable>
     <variable local_name="qrs"
               standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure_due_to_shortwave_radiation_adjusted_by_air_pressure_thickness"
               units="J Pa kg-1 s-1" type="real" kind="kind_phys"
@@ -1649,9 +1624,9 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
     </variable>
-    <variable local_name="ccpp_constant_two"
+    <variable local_name="two"
               standard_name="ccpp_constant_two"
-              units="1" type="integer">
+              units="count" type="integer">
       <initial_value>2</initial_value>
     </variable>
     <variable local_name="nmu"
