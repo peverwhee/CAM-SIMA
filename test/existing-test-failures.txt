@@ -1,1 +1,3 @@
-All tests are currently passing
+SMS_Ln9.ne3pg3_ne3pg3_mg37.FCAM4.derecho_intel.cam-outfrq_se_cslam_analy_ic_cam4 (NLFAIL)
+SMS_Ln9.ne3pg3_ne3pg3_mg37.FCAM4.derecho_gnu.cam-outfrq_se_cslam_analy_ic_cam4   (NLFAIL)
+- NLFAILs due to multiple history files: CAM-SIMA issue #430
