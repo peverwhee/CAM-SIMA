@@ -236,7 +236,7 @@ CONTAINS
 
       if (initial_run_in) then
 
-         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+         call dyn_init(dyn_in, dyn_out)
 
       else
 
@@ -312,7 +312,7 @@ CONTAINS
 
       ! Update the orbital data
       call orbital_data_advance(calday, lat_rad, lon_rad, use_rad_uniform_angle, &
-                     rad_uniform_angle, dt_avg)
+                                rad_uniform_angle, dt_avg)
 
       ! Update timestep flags in physics state
       is_first_timestep = is_first_step()

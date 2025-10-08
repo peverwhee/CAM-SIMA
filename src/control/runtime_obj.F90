@@ -24,6 +24,7 @@ module runtime_obj
    !!
    type, public :: runtime_options
       character(len=CS), private            :: phys_suite = unset_str
+      character(len=CS), private            :: dycore     = unset_str
       character(len=16), private            :: waccmx_opt = unset_str
       ! use_gw_front: Frontogenesis
       logical,           private :: use_gw_front = .false.
@@ -34,12 +35,14 @@ module runtime_obj
    contains
       ! General runtime access
       procedure, public :: physics_suite
+      procedure, public :: get_dycore
       procedure, public :: suite_as_list
       ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
       procedure, public :: waccmx_option
       procedure, public :: gw_front
       procedure, public :: gw_front_igw
+      procedure, public :: set_dycore
       procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
@@ -57,6 +60,12 @@ CONTAINS
 
       physics_suite = trim(self%phys_suite)
    end function physics_suite
+
+   pure character(len=CS) function get_dycore(self)
+      class(runtime_options), intent(in) :: self
+
+      get_dycore = trim(self%dycore)
+   end function get_dycore
 
    pure function suite_as_list(self) result(slist)
       class(runtime_options), intent(in) :: self
@@ -99,6 +108,14 @@ CONTAINS
       update_thermodynamic_variables = self%update_thermo_variables
 
    end function update_thermodynamic_variables
+
+   subroutine set_dycore(self, dycore_in)
+      class(runtime_options), intent(inout) :: self
+      character(len=*),          intent(in) :: dycore_in
+
+      self%dycore = trim(dycore_in)
+
+   end subroutine set_dycore
 
    subroutine cam_set_runtime_opts(phys_suite, waccmx_opt,                    &
         gw_front, gw_front_igw)

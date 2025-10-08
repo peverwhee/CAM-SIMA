@@ -1529,6 +1529,13 @@
               units="s" type="real" kind="kind_phys">
       <initial_value>0._kind_phys</initial_value>
     </variable>
+    <variable local_name="coszrs_rad"
+	      standard_name="cosine_of_solar_zenith_angle_for_radiation"
+              units="1" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <ic_file_input_names>COSZRS pbuf_COSZRS</ic_file_input_names>
+    </variable>
     <variable local_name="cldfsnow"
               standard_name="liquid_plus_snow_stratiform_cloud_area_fraction"
               units="fraction" type="real" kind="kind_phys"
