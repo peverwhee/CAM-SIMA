@@ -60,6 +60,17 @@ class GitInterface:
 
     # pylint: disable=unused-argument
     def git_operation(self, operation, *args, **kwargs):
+        newargs = []
+        for a in args:
+            # Do not use ssh interface
+            if isinstance(a, str):
+                a = a.replace("git@github.com:", "https://github.com/")
+            newargs.append(a)
+
+        return self._git_command(operation, *newargs)
+
+    # pylint: disable=unused-argument
+    def git_operation(self, operation, *args, **kwargs):
         command = self._git_operation_command(operation, args)
         if isinstance(command, list):
             try:
