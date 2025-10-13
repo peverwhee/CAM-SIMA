@@ -236,7 +236,7 @@ CONTAINS
 
       if (initial_run_in) then
 
-         call dyn_init(dyn_in, dyn_out)
+         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
       else
 

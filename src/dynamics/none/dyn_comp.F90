@@ -51,17 +51,18 @@ CONTAINS
 
 !==============================================================================
 
-   subroutine dyn_init(dyn_in, dyn_out)
-      use runtime_obj, only: runtime_options, cam_runtime_opts
+   subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+      use runtime_obj, only: set_cam_dycore, runtime_options
       ! Null dycore, no action
 
       ! Dummy arguments:
+      type(runtime_options), intent(in)  :: cam_runtime_opts
       type(dyn_import_t),    intent(out) :: dyn_in
       type(dyn_export_t),    intent(out) :: dyn_out
 
       ! Note: dynamical core energy formula is set in dyn_grid based on dynamical core
       ! that provided the initial conditions file
-      call cam_runtime_opts%set_dycore('null')
+      call set_cam_dycore('null')
 
    end subroutine dyn_init
 

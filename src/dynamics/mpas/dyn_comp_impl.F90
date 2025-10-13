@@ -125,7 +125,7 @@ contains
     !> (KCW, 2024-05-28)
     !
     ! Called by `cam_init` in `src/control/cam_comp.F90`.
-    module subroutine dyn_init(dyn_in, dyn_out)
+    module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
         use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
@@ -135,13 +135,14 @@ contains
         use cam_pio_utils, only: clean_iodesc_list
         use dyn_coupling, only: dyn_exchange_constituent_states
         use inic_analytic, only: analytic_ic_active
-        use runtime_obj, only: runtime_options, cam_runtime_opts
+        use runtime_obj, only: runtime_options, set_cam_dycore
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: std_name_len
         ! Module(s) from external libraries.
         use pio, only: file_desc_t
 
+        type(runtime_options), intent(in)  :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
 
@@ -155,7 +156,7 @@ contains
         type(file_desc_t), pointer :: pio_topo_file
 
         ! Set dycore name in runtime object
-        call cam_runtime_opts%set_dycore('mpas')
+        call set_cam_dycore('mpas')
 
         call dyn_debug_print(debugout_debug, subname // ' entered')
 

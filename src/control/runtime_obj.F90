@@ -42,13 +42,13 @@ module runtime_obj
       procedure, public :: waccmx_option
       procedure, public :: gw_front
       procedure, public :: gw_front_igw
-      procedure, public :: set_dycore
       procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
    type(runtime_options), public, protected :: cam_runtime_opts
 
    public :: cam_set_runtime_opts
+   public :: set_cam_dycore
 
    ! Private data
    logical :: runtime_configured = .false.
@@ -109,13 +109,12 @@ CONTAINS
 
    end function update_thermodynamic_variables
 
-   subroutine set_dycore(self, dycore_in)
-      class(runtime_options), intent(inout) :: self
+   subroutine set_cam_dycore(dycore_in)
       character(len=*),          intent(in) :: dycore_in
 
-      self%dycore = trim(dycore_in)
+      cam_runtime_opts%dycore = trim(dycore_in)
 
-   end subroutine set_dycore
+   end subroutine set_cam_dycore
 
    subroutine cam_set_runtime_opts(phys_suite, waccmx_opt,                    &
         gw_front, gw_front_igw)
