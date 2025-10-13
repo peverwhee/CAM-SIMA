@@ -2600,7 +2600,6 @@ contains
 
       !Check if count indices are within bounds:
       do i = 1, file_var_dim_num
-         if ((count(i) < 1) .or. (count(i) > dim_sizes(i))) then
          if ((count(i) < 1) .or. ((start(i)+count(i)-1) > dim_sizes(i))) then
             errcode = bad_subset_range_err
             write(errmsg, '(a,i0,3a,i0,a,i0,a)') &

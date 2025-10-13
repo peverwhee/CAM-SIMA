@@ -701,6 +701,38 @@
       <initial_value>0.0_kind_phys</initial_value>
       <ic_file_input_names>cflx cam_in_cflx</ic_file_input_names>
     </variable>
+    <variable local_name="fsnt"
+	      standard_name="shortwave_net_outgoing_flux_at_model_top"
+	      units="W m-2" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>FSNT pbuf_FSNT</ic_file_input_names>
+    </variable>
+    <variable local_name="fsns"
+	      standard_name="shortwave_net_upward_flux_at_surface"
+	      units="W m-2" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>FSNS pbuf_FSNS</ic_file_input_names>
+    </variable>
+    <variable local_name="flnt"
+	      standard_name="longwave_net_outgoing_flux_at_model_top"
+	      units="W m-2" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>FLNT pbuf_FLNT</ic_file_input_names>
+    </variable>
+    <variable local_name="flns"
+	      standard_name="longwave_net_upward_flux_at_surface"
+	      units="W m-2" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+      <dimensions>horizontal_dimension</dimensions>
+      <initial_value>0.0_kind_phys</initial_value>
+      <ic_file_input_names>FLNS pbuf_FLNS</ic_file_input_names>
+    </variable>
 
     <!-- data_flux_fuel is being intentionally ignored as it will only be needed for the online carbon cycle -->
     <!-- data_flux_ocn is being intentionally ignored as it will only be needed for the online carbon cycle -->
