@@ -556,7 +556,7 @@ end subroutine dyn_readnl
 
 !=========================================================================================
 
-subroutine dyn_init(dyn_in, dyn_out)
+subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
    use runtime_obj,        only: runtime_options, set_cam_dycore
    use dyn_grid,           only: elem, fvm
    use cam_pio_utils,      only: clean_iodesc_list

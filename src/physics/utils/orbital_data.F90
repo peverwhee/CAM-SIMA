@@ -23,7 +23,6 @@ module orbital_data
   real(kind_phys),              protected, public :: solar_declination  = FILL_R8 ! Solar declination angle [radians]
   real(kind_phys),              protected, public :: earth_sun_distance = FILL_R8 ! Earth-sun distance [AU]
   real(kind_phys), allocatable, protected, public :: solar_zenith_angle(:)        ! Solar zenith angle (column) [radians]
-  !real(kind_phys), allocatable, protected, public :: coszrs_rad(:)                ! Cosine of solar zenith angle (column) for radiation [radians]
 
   ! Local parameters
   character(len=*), parameter :: module_name = '(orbital_data)'
@@ -53,11 +52,6 @@ contains
     call check_allocate(error_code, subroutine_name, &
                         'solar_zenith_angle(number_of_columns)', &
                         file=__FILE__, line=__LINE__)
-    !allocate(coszrs_rad(number_of_columns), source=FILL_R8, &
-    !         stat=error_code)
-    !call check_allocate(error_code, subroutine_name, &
-    !                    'coszrs_rad(number_of_columns)', &
-    !                    file=__FILE__, line=__LINE__)
    
   end subroutine orbital_data_init
 

@@ -1930,7 +1930,7 @@ subroutine test_pio_reader_bad_count_element_range()
     @assertNotEqual(0, errcode)
     @assertEqual(expected_err_msg_neg, trim(errmsg))
 
-    ! Next attempt to read variable with too-large start element:
+    ! Next attempt to read variable with too-large count element:
     call reader%get_var("pressure", pressure, errmsg, errcode, start=(/1/), count=(/60/))
 
     ! Check that the correct error was raised:

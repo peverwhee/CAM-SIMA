@@ -142,7 +142,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t
 
-        type(runtime_options), intent(in)  :: cam_runtime_opts
+        type(runtime_options), intent(in) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
 
