@@ -30,6 +30,7 @@ module cam_comp
    use physics_types,             only: dtime_phys
    use physics_types,             only: calday, next_calday, radiation_offset, nextsw_cday
    use physics_types,             only: is_first_timestep, nstep
+   use physics_types,             only: is_first_restart_timestep
    use dyn_comp,                  only: dyn_import_t, dyn_export_t
 
    use perf_mod,                  only: t_barrierf, t_startf, t_stopf
@@ -177,6 +178,9 @@ CONTAINS
 
       is_first_timestep = .true.
       call mark_as_initialized('is_first_timestep')
+
+      is_first_restart_timestep = .false.
+      call mark_as_initialized('is_first_restart_timestep')
 
       nstep = get_nstep()
       call mark_as_initialized('current_timestep_number')

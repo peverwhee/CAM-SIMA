@@ -110,6 +110,49 @@
 
    end function is_initialized
 
+   logical function is_parameter(varname, error_on_not_found)
+
+      ! This function checks if the variable, <varname>, is
+      !    a parameter according to the 'initialized_vars' array.
+
+      use cam_abortutils, only: endrun
+
+      ! Dummy argument
+      character(len=*), intent(in) :: varname ! Variable name being checked
+      logical, optional, intent(in) :: error_on_not_found
+
+      ! Local variables
+      integer                     :: stdnam_idx ! Standard name array index
+      logical                     :: found      ! Check that <varname> was found
+      logical                     :: error_on_not_found_loc
+      character(len=*), parameter :: subname = 'is_parameter: '
+
+      is_parameter = .false.
+      found = .false.
+
+      if (present(error_on_not_found)) then
+         error_on_not_found_loc = error_on_not_found
+      else
+         error_on_not_found_loc = .true.
+      end if
+
+      ! Check if variable is a parameter
+      do stdnam_idx = 1, phys_var_num
+         if (trim(phys_var_stdnames(stdnam_idx)) == trim(varname)) then
+            is_parameter = (initialized_vars(stdnam_idx) == PARAM)
+            found = .true.
+            exit ! Exit loop once variable has been found and checked
+         end if
+      end do
+
+      if (.not. found .and. error_on_not_found_loc) then
+         ! This condition is an internal error, it should not happen
+         call endrun(subname//": Variable '"//trim(varname)//                 &
+              "' is missing from phys_var_stdnames array.")
+      end if
+
+   end function is_parameter
+
    subroutine is_read_from_file(varname, is_read, stdnam_idx_out)
 
       ! This subroutine checks if the variable, <varname>, is read from

@@ -36,6 +36,7 @@
     <use module="runtime_obj" reference="unset_real"/>
     <use module="phys_vars_init_check" reference="mark_as_initialized"/>
     <use module="phys_vars_init_check" reference="is_initialized"/>
+    <use module="phys_vars_init_check" reference="is_parameter"/>
     <use module="physconst" reference="cpair"/>
     <use module="physconst" reference="rair"/>
     <use module="physconst" reference="mwdry"/>
@@ -366,6 +367,11 @@
               standard_name="is_first_timestep"
               units="flag" type="logical">
       <long_name>flag indicating if it is the first timestep of an initial run</long_name>
+    </variable>
+    <variable local_name="is_first_restart_timestep"
+              standard_name="is_first_restart_timestep"
+              units="flag" type="logical">
+      <long_name>flag indicating if it is the first timestep of restart run</long_name>
     </variable>
     <!-- State tendencies -->
     <variable local_name="dTdt_total"
@@ -1599,7 +1605,7 @@
               allocatable="allocatable"
               access="protected" >
       <dimensions>horizontal_dimension vertical_layer_dimension number_of_ccpp_constituents</dimensions>
-      <initial_value>1</initial_value>
+      <initial_value>1._kind_phys</initial_value>
     </variable>
 
     <!-- dme_adjust Variables -->
