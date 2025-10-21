@@ -1746,9 +1746,11 @@
     </variable>
     <variable local_name="two"
               standard_name="ccpp_constant_two"
-              units="count" type="integer">
+              units="count" type="integer"
+	      allocatable="parameter">
       <initial_value>2</initial_value>
     </variable>
+    <!--
     <variable local_name="nmu"
               standard_name="number_of_gamma_distribution_shape_parameters_on_liquid_optics_grid"
               units="count" type="integer">
@@ -1763,6 +1765,6 @@
               standard_name="number_of_radiative_effective_diameter_samples_on_ice_optics_grid"
               units="count" type="integer">
       <initial_value>-1</initial_value>
-    </variable>
+    </variable>-->
   </file>
 </registry>
