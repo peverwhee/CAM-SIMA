@@ -489,14 +489,6 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
             # End if
         # End for
     # End for
-
-    # Reorder scheme files to put namelist files first
-    namelist_files = [f for f in scheme_files if "_namelist" in f]
-    other_files = [f for f in scheme_files if "_namelist" not in f]
-
-    # Concatenate with namelist files first
-    scheme_files = namelist_files + other_files
-
     # Figure out if we need to generate new physics code
     genccpp_dir = os.path.join(bldroot, "ccpp")
     kind_phys = ['kind_phys = REAL64']
