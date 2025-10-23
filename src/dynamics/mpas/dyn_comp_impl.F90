@@ -139,6 +139,8 @@ contains
         use time_manager, only: get_step_size
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: std_name_len
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: len_cx => shr_kind_cx
         ! Module(s) from external libraries.
         use pio, only: file_desc_t
 
@@ -147,6 +149,7 @@ contains
         type(dyn_export_t), intent(in) :: dyn_out
 
         character(*), parameter :: subname = 'dyn_comp::dyn_init'
+        character(len_cx) :: cerr
         character(std_name_len), allocatable :: constituent_name(:)
         integer :: coupling_time_interval
         integer :: i
@@ -163,11 +166,13 @@ contains
         nullify(pio_init_file)
         nullify(pio_topo_file)
 
-        allocate(constituent_name(num_advected), stat=ierr)
-        call check_allocate(ierr, subname, 'constituent_name(num_advected)', 'dyn_comp', __LINE__)
+        allocate(constituent_name(num_advected), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'constituent_name(num_advected)', &
+            file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-        allocate(is_water_species(num_advected), stat=ierr)
-        call check_allocate(ierr, subname, 'is_water_species(num_advected)', 'dyn_comp', __LINE__)
+        allocate(is_water_species(num_advected), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'is_water_species(num_advected)', &
+            file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, num_advected
             constituent_name(i) = const_name(i)
@@ -330,7 +335,8 @@ contains
         use dyn_grid, only: ncells_solve
         use dynconst, only: constant_g => gravit
         ! Module(s) from CESM Share.
-        use shr_kind_mod, only: kind_r8 => shr_kind_r8
+        use shr_kind_mod, only: kind_r8 => shr_kind_r8, &
+                                len_cx => shr_kind_cx
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, pio_file_is_open
         ! Module(s) from MPAS.
@@ -339,6 +345,7 @@ contains
         type(file_desc_t), pointer, intent(in) :: pio_file
 
         character(*), parameter :: subname = 'dyn_comp::check_topography_data'
+        character(len_cx) :: cerr
         integer :: ierr
         logical :: success
         real(kind_r8), parameter :: error_tolerance = 1.0E-3_kind_r8 ! Error tolerance for consistency check.
@@ -359,11 +366,13 @@ contains
                 call endrun('Invalid PIO file descriptor', subname, __LINE__)
             end if
 
-            allocate(surface_geopotential(ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 'surface_geopotential(ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(surface_geopotential(ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'surface_geopotential(ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(surface_geometric_height(ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 'surface_geometric_height(ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(surface_geometric_height(ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'surface_geometric_height(ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             surface_geopotential(:) = 0.0_kind_r8
             surface_geometric_height(:) = 0.0_kind_r8
@@ -444,8 +453,11 @@ contains
             use dyn_procedures, only: reverse
             use dynconst, only: deg_to_rad
             use vert_coord, only: pverp
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::init_shared_variables'
+            character(len_cx) :: cerr
             integer :: i
             integer :: ierr
             integer, pointer :: indextocellid(:)
@@ -457,8 +469,9 @@ contains
             nullify(indextocellid)
             nullify(lat_deg, lon_deg)
 
-            allocate(global_grid_index(ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 'global_grid_index(ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(global_grid_index(ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'global_grid_index(ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(indextocellid, 'mesh', 'indexToCellID')
 
@@ -466,11 +479,13 @@ contains
 
             nullify(indextocellid)
 
-            allocate(lat_rad(ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 'lat_rad(ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(lat_rad(ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'lat_rad(ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(lon_rad(ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 'lon_rad(ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(lon_rad(ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'lon_rad(ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             ! "mpas_cell" is a registered grid name that is defined in `dyn_grid`.
             lat_deg => cam_grid_get_latvals(cam_grid_id('mpas_cell'))
@@ -489,8 +504,9 @@ contains
 
             nullify(lat_deg, lon_deg)
 
-            allocate(z_int(ncells_solve, pverp), stat=ierr)
-            call check_allocate(ierr, subname, 'z_int(ncells_solve, pverp)', 'dyn_comp', __LINE__)
+            allocate(z_int(ncells_solve, pverp), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'z_int(ncells_solve, pverp)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(zgrid, 'mesh', 'zgrid')
 
@@ -523,8 +539,11 @@ contains
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_u'
+            character(len_cx) :: cerr
             integer :: i
             integer :: ierr
             real(kind_dyn_mpas), pointer :: ucellzonal(:, :), ucellmeridional(:, :)
@@ -533,8 +552,9 @@ contains
 
             nullify(ucellzonal, ucellmeridional)
 
-            allocate(buffer_2d_real(ncells_solve, pver), stat=ierr)
-            call check_allocate(ierr, subname, 'buffer_2d_real(ncells_solve, pver)', 'dyn_comp', __LINE__)
+            allocate(buffer_2d_real(ncells_solve, pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'buffer_2d_real(ncells_solve, pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(ucellzonal, 'diag', 'uReconstructZonal')
             call mpas_dynamical_core % get_variable_pointer(ucellmeridional, 'diag', 'uReconstructMeridional')
@@ -600,12 +620,15 @@ contains
             use dyn_tests_utils, only: vc_height
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             ! CCPP standard name of `qv`, which denotes water vapor mixing ratio.
             character(*), parameter :: constituent_qv_standard_name = &
                 'water_vapor_mixing_ratio_wrt_dry_air'
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_scalars'
+            character(len_cx) :: cerr
             integer :: i, j
             integer :: ierr
             integer, allocatable :: constituent_index(:)
@@ -617,11 +640,13 @@ contains
             nullify(index_qv)
             nullify(scalars)
 
-            allocate(buffer_3d_real(ncells_solve, pver, num_advected), stat=ierr)
-            call check_allocate(ierr, subname, 'buffer_3d_real(ncells_solve, pver, num_advected)', 'dyn_comp', __LINE__)
+            allocate(buffer_3d_real(ncells_solve, pver, num_advected), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'buffer_3d_real(ncells_solve, pver, num_advected)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(constituent_index(num_advected), stat=ierr)
-            call check_allocate(ierr, subname, 'constituent_index(num_advected)', 'dyn_comp', __LINE__)
+            allocate(constituent_index(num_advected), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'constituent_index(num_advected)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
@@ -678,8 +703,11 @@ contains
                                 constant_rd => rair, constant_rv => rh2o
             use inic_analytic, only: dyn_set_inic_col
             use vert_coord, only: pver
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_theta'
+            character(len_cx) :: cerr
             integer :: i, k
             integer :: ierr
             integer, pointer :: index_qv
@@ -704,18 +732,21 @@ contains
             nullify(theta)
             nullify(scalars)
 
-            allocate(p_sfc(ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 'p_sfc(ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(p_sfc(ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'p_sfc(ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             p_sfc(:) = 0.0_kind_r8
 
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, ps=p_sfc)
 
-            allocate(buffer_2d_real(ncells_solve, pver), stat=ierr)
-            call check_allocate(ierr, subname, 'buffer_2d_real(ncells_solve, pver)', 'dyn_comp', __LINE__)
+            allocate(buffer_2d_real(ncells_solve, pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'buffer_2d_real(ncells_solve, pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(t_mid(pver, ncells_solve), stat=ierr)
-            call check_allocate(ierr, subname, 't_mid(pver, ncells_solve)', 'dyn_comp', __LINE__)
+            allocate(t_mid(pver, ncells_solve), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 't_mid(pver, ncells_solve)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             buffer_2d_real(:, :) = 0.0_kind_r8
 
@@ -728,17 +759,21 @@ contains
 
             deallocate(buffer_2d_real)
 
-            allocate(p_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, subname, 'p_mid_col(pver)', 'dyn_comp', __LINE__)
+            allocate(p_mid_col(pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'p_mid_col(pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(qv_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, subname, 'qv_mid_col(pver)', 'dyn_comp', __LINE__)
+            allocate(qv_mid_col(pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'qv_mid_col(pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(tm_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, subname, 'tm_mid_col(pver)', 'dyn_comp', __LINE__)
+            allocate(tm_mid_col(pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'tm_mid_col(pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(tv_mid_col(pver), stat=ierr)
-            call check_allocate(ierr, subname, 'tv_mid_col(pver)', 'dyn_comp', __LINE__)
+            allocate(tv_mid_col(pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'tv_mid_col(pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(rho, 'diag', 'rho')
@@ -813,8 +848,11 @@ contains
             use dynconst, only: constant_cpd => cpair, constant_g => gravit, constant_p0 => pref, &
                                 constant_rd => rair
             use vert_coord, only: pver
+            ! Module(s) from CESM Share.
+            use shr_kind_mod, only: len_cx => shr_kind_cx
 
             character(*), parameter :: subname = 'dyn_comp::set_analytic_initial_condition::set_mpas_state_rho_base_theta_base'
+            character(len_cx) :: cerr
             integer :: i, k
             integer :: ierr
             real(kind_r8), parameter :: t_base = 250.0_kind_r8 ! Base state temperature (K) of dry isothermal atmosphere.
@@ -830,8 +868,9 @@ contains
             nullify(theta_base)
             nullify(zz)
 
-            allocate(p_base(pver), stat=ierr)
-            call check_allocate(ierr, subname, 'p_base(pver)', 'dyn_comp', __LINE__)
+            allocate(p_base(pver), errmsg=cerr, stat=ierr)
+            call check_allocate(ierr, subname, 'p_base(pver)', &
+                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
             call mpas_dynamical_core % get_variable_pointer(rho_base, 'diag', 'rho_base')
             call mpas_dynamical_core % get_variable_pointer(theta_base, 'diag', 'theta_base')
@@ -987,11 +1026,13 @@ contains
         use dyn_grid, only: ncells_solve
         use physics_types, only: phys_state
         ! Module(s) from CESM Share.
+        use shr_kind_mod, only: len_cx => shr_kind_cx
         use shr_pio_mod, only: shr_pio_getioformat, shr_pio_getiosys, shr_pio_getiotype
         ! Module(s) from external libraries.
         use pio, only: file_desc_t, iosystem_desc_t, pio_createfile, pio_closefile, pio_clobber, pio_noerr
 
         character(*), parameter :: subname = 'dyn_comp::dyn_variable_dump'
+        character(len_cx) :: cerr
         integer :: ierr
         integer :: pio_ioformat, pio_iotype
         real(kind_dyn_mpas), pointer :: surface_pressure(:)
@@ -1010,8 +1051,9 @@ contains
 
         call mpas_dynamical_core % exchange_halo('surface_pressure')
 
-        allocate(pio_file, stat=ierr)
-        call check_allocate(ierr, subname, 'pio_file', 'dyn_comp', __LINE__)
+        allocate(pio_file, errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'pio_file', &
+            file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         pio_iosystem => shr_pio_getiosys(atm_id)
 
