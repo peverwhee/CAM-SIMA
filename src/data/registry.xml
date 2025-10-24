@@ -36,7 +36,6 @@
     <use module="runtime_obj" reference="unset_real"/>
     <use module="phys_vars_init_check" reference="mark_as_initialized"/>
     <use module="phys_vars_init_check" reference="is_initialized"/>
-    <use module="phys_vars_init_check" reference="is_parameter"/>
     <use module="physconst" reference="cpair"/>
     <use module="physconst" reference="rair"/>
     <use module="physconst" reference="mwdry"/>
