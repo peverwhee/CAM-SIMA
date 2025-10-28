@@ -227,6 +227,7 @@ class BuildCacheCAM:
         self.__reg_gen_files = []
         self.__ic_names = {}
         self.__constituents = []
+        self.__restart_list = []
         self.__vars_init_value = []
         if os.path.exists(build_cache):
             # Initialize build cache state
@@ -258,6 +259,10 @@ class BuildCacheCAM:
                             stdname = item.get('standard_name')
                             itext = clean_xml_text(item)
                             self.__constituents.append(itext)
+                        elif item.tag == 'restart_entry':
+                            stdname = item.get('standard_name')
+                            itext = clean_xml_text(item)
+                            self.__restart_list.append(itext)
                         elif item.tag == 'vars_init_value_entry':
                             itext = clean_xml_text(item)
                             self.__vars_init_value.append(itext)
@@ -322,7 +327,8 @@ class BuildCacheCAM:
         # end if
 
     def update_registry(self, gen_reg_file, registry_source_files,
-                        dycore, reg_file_list, ic_names, constituents, vars_init_value):
+                        dycore, reg_file_list, ic_names, constituents,
+                        restart_list, vars_init_value):
         """Replace the registry cache data with input data
         """
         self.__dycore = dycore
@@ -338,6 +344,7 @@ class BuildCacheCAM:
         # and should already be of type dict:
         self.__ic_names = ic_names
         self.__constituents = constituents
+        self.__restart_list = restart_list
         self.__vars_init_value = vars_init_value
 
     def update_ccpp(self, suite_definition_files, scheme_files, host_files,
@@ -383,6 +390,14 @@ class BuildCacheCAM:
         """
         self.__gen_init_file = FileStatus(gen_init_file, 'generate_init_file')
 
+    def update_restart_gen(self, gen_restart_file):
+        """
+        Replace the restart writer
+        (write_physics_restart.py) cache
+        data with input data
+        """
+        self.__gen_restart_file = FileStatus(gen_restart_file, 'generate_restart_file')
+
     def write(self):
         """Write out the current cache state"""
         new_cache = ET.Element("CAMBuildCache")
@@ -415,6 +430,9 @@ class BuildCacheCAM:
             const_entry = ET.SubElement(registry, 'constituent_entry')
             const_entry.text = stdname
         # end for
+        for stdname in self.__restart_list:
+            restart_entry = ET.SubElement(registry, 'restart_entry')
+            restart_entry.text = stdname
         for stdname in self.__vars_init_value:
             var_entry = ET.SubElement(registry, 'vars_init_value_entry')
             var_entry.text = stdname
@@ -624,6 +642,10 @@ class BuildCacheCAM:
     def constituents(self):
         """Return a copy of the registry constituents list"""
         return list(self.__constituents)
+
+    def restart_vars(self):
+        """Return a copy of the registry's list of variables for the restart file"""
+        return list(self.__restart_list)
 
     def vars_init_value(self):
         """Return a copy of the list of variables with initial_value"""

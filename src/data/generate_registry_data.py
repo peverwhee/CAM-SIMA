@@ -165,6 +165,7 @@ class VarBase:
         self.__allocatable = elem_node.get('allocatable', default=alloc_default)
         self.__constituent = elem_node.get("constituent", default=False)
         self.__advected    = elem_node.get("advected", default=False)
+        self.__restart     = elem_node.get("restart", default=False)
         self.__tstep_init  = elem_node.get("phys_timestep_init_zero",
                                            default=tstep_init_default)
         if self.__allocatable == "none":
@@ -425,6 +426,11 @@ class VarBase:
     def is_advected(self):
         """Return True if this variable is advected"""
         return self.__advected
+
+    @property
+    def is_restart(self):
+        """Return True if this variable should be included on the physics restart file"""
+        return self.__restart
 
     @property
     def tstep_init(self):
@@ -1793,6 +1799,29 @@ def _create_constituent_list(registry):
     return constituent_list
 
 ###############################################################################
+def _create_restart_list(registry):
+###############################################################################
+    """
+    Create a list of all registry variables that need to be included in
+    the physics restart file.
+    To be used by write_physics_restart.py
+    """
+    restart_list = []
+    for section in registry:
+        if section.tag == 'file':
+            for obj in section:
+                if obj.tag == 'variable':
+                    if obj.get('restart'):
+                        stdname = obj.get('standard_name')
+                        restart_list.append(stdname)
+                    # end if (ignore non-restart variables)
+                # end if (ignore other node types)
+            # end for
+        # end if (ignore other node types)
+    # end for
+    return restart_list
+
+###############################################################################
 def _create_variables_with_initial_value_list(registry):
 ###############################################################################
     """
@@ -1889,10 +1918,11 @@ def gen_registry(registry_file, dycore, outdir, indent,
         # See comment in _create_ic_name_dict
         ic_names = _create_ic_name_dict(registry)
         registry_constituents = _create_constituent_list(registry)
+        restart_vars = _create_restart_list(registry)
         vars_init_value = _create_variables_with_initial_value_list(registry)
         retcode = 0 # Throw exception on error
     # end if
-    return retcode, files, ic_names, registry_constituents, vars_init_value
+    return retcode, files, ic_names, registry_constituents, restart_vars, vars_init_value
 
 def main():
     """Function to execute when module called as a script"""
