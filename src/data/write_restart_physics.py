@@ -39,7 +39,7 @@ _MAX_LINE_LEN = 200
 #Main function
 ##############
 
-def write_physics_restart(cap_database, ic_names, registry_constituents,
+def write_restart_physics(cap_database, ic_names, registry_constituents,
                      restart_vars, outdir, file_find_func, source_paths, indent, logger,
                      phys_restart_filename=None):
 
@@ -96,7 +96,7 @@ def write_physics_restart(cap_database, ic_names, registry_constituents,
 
         all_req_vars = in_vars + out_vars
         # Grab the required variables that are also restart variables
-        required_restart_vars, required_restart_constituents = gather_required_restart_variables(all_req_vars, constituent_set, restart_vars)
+        required_restart_vars, required_restart_constituents, constituent_dimmed_vars = gather_required_restart_variables(all_req_vars, constituent_set, restart_vars)
 
         outfile.blank_line()
         outfile.comment("Private module data", 0)
@@ -104,14 +104,18 @@ def write_physics_restart(cap_database, ic_names, registry_constituents,
             outfile.write(f"type(var_desc_t) :: {required_var.lower()}_desc", 1)
         # end for
 
+        for required_var in constituent_dimmed_vars:
+            outfile.write(f"type(var_desc_t), allocatable :: {required_var.lower()}_desc(:)", 1)
+        # end for
+
         # Add "contains" statement:
         outfile.end_module_header()
         outfile.blank_line()
 
         # Write the restart init subroutine
-        write_restart_physics_init(outfile, required_restart_vars, required_restart_constituents)
+        write_restart_physics_init(outfile, required_restart_vars, required_restart_constituents, constituent_dimmed_vars)
 
-def write_restart_physics_init(outfile, required_vars, constituent_vars):
+def write_restart_physics_init(outfile, required_vars, constituent_vars, constituent_dimmed_vars):
     """
     Write the init routine for the physics restart variables. This
     routine initializes the physics fields on the restart (cam.r) file
@@ -119,7 +123,23 @@ def write_restart_physics_init(outfile, required_vars, constituent_vars):
 
     outfile.write("subroutine restart_physics_init(file, hdimids, errmsg, errflg)", 1)
 
-    # peverwhee - figure out use statements
+    use_stmts = [["pio", ["file_desc_t", "pio_bcast_error",
+                          "pio_set_errorhandling", "pio_double",
+                          "pio_def_var"]],
+                 ["cam_abortutils", ["endrun"]],
+                 ["shr_kind_mod", ["SHR_KIND_CS, SHR_KIND_CL, SHR_KIND_CX"]],
+                 ["cam_ccpp_cap", ["cam_model_const_properties"]],
+                 ["ccpp_kinds", ["kind_phys"]],
+                 ["cam_logfile", ["iulog"]],
+                 ["spmd_utils", ["masterproc"]],
+                 ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]]]
+
+    # Add in host model data use statements
+#    use_stmts.extend(host_imports)
+
+    # Output required, registered Fortran module use statements:
+    write_use_statements(outfile, use_stmts, 2)
+
     # pio: pio_bcast_error, file_desc_t, pio_seterrorhandling, pio_double
     
     outfile.write("type(file_desc_t), intent(inout) :: file", 2)
@@ -129,7 +149,9 @@ def write_restart_physics_init(outfile, required_vars, constituent_vars):
     outfile.blank_line()
 
     # Local variables
-    outfile.write("integer :: ierr", 2)
+    outfile.write("integer :: constituent_idx", 2)
+    outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
+    outfile.write("character(len=512) :: const_locname", 2)
 
     outfile.blank_line()
 
@@ -139,14 +161,37 @@ def write_restart_physics_init(outfile, required_vars, constituent_vars):
     outfile.comment("Define required restart variables on the restart file", 2)
     for required_var in required_vars:
         desc_name = f"{required_var.lower()}_desc"
-        outfile.write(f"ierr = pio_def_var(file, '{required_var}', pio_double, hdimids, {desc_name})", 2)
-        outfile.write("if (ierr /= 0) then", 2)
+        outfile.write(f"errflg = pio_def_var(file, '{required_var}', pio_double, hdimids, {desc_name})", 2)
+        outfile.write("if (errflg /= 0) then", 2)
         outfile.write(f"write(errmsg,*) 'restart_physics_init: error defining variable {required_var}'", 3)
-        outfile.write("errflg = ierr", 3)
         outfile.write("return", 3)
         outfile.write("end if", 2)
         outfile.blank_line()
     # end for
+
+    # Handle constituent-dimensioned variables
+    if constituent_dimmed_vars:
+        outfile.write("const_props => cam_model_const_properties()", 2)
+        outfile.blank_line()
+        for required_var in constituent_dimmed_vars:
+            outfile.comment(f"Handling for constituent-dimensioned variable '{required_var}'", 2)
+            outfile.write(f"allocate({required_var.lower()}_desc(size(const_props)), stat=errflg, errmsg=errmsg)", 2)
+            outfile.write("if (errflg /= 0) then", 2)
+            outfile.write("return", 3)
+            outfile.write("end if", 2)
+            outfile.write("do constituent_idx = 1, size(const_props)", 2)
+            outfile.comment("Grab constituent local name:", 3)
+            outfile.write("call const_props(constituent_idx)%local_name(const_locname)", 3)
+            desc_name = f"{required_var.lower()}_desc"
+            outfile.write(f"errflg = pio_def_var(file, '{required_var}_'//trim(const_locname), pio_double, hdimids, {desc_name}(constituent_idx))", 3)
+            outfile.write("if (errflg /= 0) then", 3)
+            outfile.write(f"write(errmsg,*) 'restart_physics_init: error defining variable {required_var}_'//trim(const_locname)", 4)
+            outfile.write("end if", 3)
+            outfile.write("end do", 2)
+            outfile.blank_line()
+        # end for
+    # end if
+
 
     outfile.write("end subroutine restart_physics_init", 1)
 
@@ -260,6 +305,7 @@ def gather_required_restart_variables(all_req_vars, registry_constituents, resta
 
     required_restart_vars = []
     required_constituent_restart_vars = []
+    required_constituent_dimensioned_vars = []
 
     for required_var in all_req_vars:
         stdname = required_var.get_prop_value('standard_name')
@@ -268,9 +314,44 @@ def gather_required_restart_variables(all_req_vars, registry_constituents, resta
             if stdname in registry_constituents:
                 required_constituent_restart_vars.append(diagnostic_name)
             else:
-                required_restart_vars.append(diagnostic_name)
+                if 'ccpp_constant_one:number_of_ccpp_constituents' in required_var.get_dimensions():
+                    print('HI THERE!')
+                    required_constituent_dimensioned_vars.append(diagnostic_name)
+                else:
+                    required_restart_vars.append(diagnostic_name)
             # end if
         # end if (ignore all non-restart variables)
     # end for
 
-    return required_restart_vars, required_constituent_restart_vars
+    return required_restart_vars, required_constituent_restart_vars, required_constituent_dimensioned_vars
+
+#####
+
+def write_use_statements(outfile, use_stmts, indent):
+    """Output Fortran module use (import) statements listed in <use_stmts>.
+    """
+
+    # The plus one is for a comma
+    max_modname = max(len(x[0]) for x in use_stmts) + 1
+    # max_modspace is the max chars of the module plus other 'use' statement
+    #    syntax (e.g., 'only:')
+    max_modspace = (outfile.indent_size * indent) + max_modname + 10
+    mod_space = outfile.line_fill - max_modspace
+    for use_item in use_stmts:
+        # Break up imported interfaces to clean up use statements
+        larg = 0
+        num_imports = len(use_item[1])
+        while larg < num_imports:
+            int_str = use_item[1][larg]
+            larg = larg + 1
+            while ((larg < num_imports) and
+                   ((len(int_str) + len(use_item[1][larg]) + 2) < mod_space)):
+                int_str += f", {use_item[1][larg]}"
+                larg = larg + 1
+            # end while
+            modname = use_item[0] + ','
+            outfile.write(f"use {modname: <{max_modname}} only: {int_str}",
+                          indent)
+        # end while
+    # end for
+

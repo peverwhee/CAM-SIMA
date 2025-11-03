@@ -393,7 +393,7 @@ class BuildCacheCAM:
     def update_restart_gen(self, gen_restart_file):
         """
         Replace the restart writer
-        (write_physics_restart.py) cache
+        (write_restart_physics.py) cache
         data with input data
         """
         self.__gen_restart_file = FileStatus(gen_restart_file, 'generate_restart_file')

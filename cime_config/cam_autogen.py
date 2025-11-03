@@ -33,7 +33,7 @@ sys.path.append(_REG_GEN_DIR)
 # Import needed registry and other src/data scripts:
 from generate_registry_data import gen_registry
 from write_init_files import write_init_files
-from write_physics_restart import write_physics_restart
+from write_restart_physics import write_restart_physics
 
 ###############################################################################
 
@@ -757,7 +757,7 @@ def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
     #Add new directory to build path:
     restart_dir = os.path.join(bldroot, "phys_restart")
     # Use this for cache check
-    gen_restart_file = os.path.join(_REG_GEN_DIR, "write_physics_restart.py")
+    gen_restart_file = os.path.join(_REG_GEN_DIR, "write_restart_physics.py")
 
     # Figure out if we need to generate new restart routines:
     if os.path.exists(restart_dir):
@@ -776,7 +776,7 @@ def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
     # End if
     if do_gen_restart:
         source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_physics_restart(cap_database, ic_names, registry_constituents,
+        retmsg = write_restart_physics(cap_database, ic_names, registry_constituents,
                                        restart_vars, restart_dir, _find_file, 
                                        source_paths, gen_fort_indent, _LOGGER)
         
