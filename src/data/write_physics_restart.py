@@ -96,12 +96,59 @@ def write_physics_restart(cap_database, ic_names, registry_constituents,
 
         all_req_vars = in_vars + out_vars
         # Grab the required variables that are also restart variables
-        print(restart_vars)
         required_restart_vars, required_restart_constituents = gather_required_restart_variables(all_req_vars, constituent_set, restart_vars)
+
+        outfile.blank_line()
+        outfile.comment("Private module data", 0)
+        for required_var in required_restart_vars:
+            outfile.write(f"type(var_desc_t) :: {required_var.lower()}_desc", 1)
+        # end for
 
         # Add "contains" statement:
         outfile.end_module_header()
         outfile.blank_line()
+
+        # Write the restart init subroutine
+        write_restart_physics_init(outfile, required_restart_vars, required_restart_constituents)
+
+def write_restart_physics_init(outfile, required_vars, constituent_vars):
+    """
+    Write the init routine for the physics restart variables. This
+    routine initializes the physics fields on the restart (cam.r) file
+    """
+
+    outfile.write("subroutine restart_physics_init(file, hdimids, errmsg, errflg)", 1)
+
+    # peverwhee - figure out use statements
+    # pio: pio_bcast_error, file_desc_t, pio_seterrorhandling, pio_double
+    
+    outfile.write("type(file_desc_t), intent(inout) :: file", 2)
+    outfile.write("integer,           intent(in)    :: hdimids(:)", 2)
+    outfile.write("character(len=512),intent(out)   :: errmsg", 2)
+    outfile.write("integer,           intent(out)   :: errflg", 2)
+    outfile.blank_line()
+
+    # Local variables
+    outfile.write("integer :: ierr", 2)
+
+    outfile.blank_line()
+
+    outfile.write("call pio_seterrorhandling(file, PIO_BCAST_ERROR)", 2)
+    outfile.blank_line()
+
+    outfile.comment("Define required restart variables on the restart file", 2)
+    for required_var in required_vars:
+        desc_name = f"{required_var.lower()}_desc"
+        outfile.write(f"ierr = pio_def_var(file, '{required_var}', pio_double, hdimids, {desc_name})", 2)
+        outfile.write("if (ierr /= 0) then", 2)
+        outfile.write(f"write(errmsg,*) 'restart_physics_init: error defining variable {required_var}'", 3)
+        outfile.write("errflg = ierr", 3)
+        outfile.write("return", 3)
+        outfile.write("end if", 2)
+        outfile.blank_line()
+    # end for
+
+    outfile.write("end subroutine restart_physics_init", 1)
 
 #################
 #HELPER FUNCTIONS
@@ -214,14 +261,16 @@ def gather_required_restart_variables(all_req_vars, registry_constituents, resta
     required_restart_vars = []
     required_constituent_restart_vars = []
 
-    for restart_var in restart_vars:
-        if restart_var in all_req_vars:
-            if restart_var in registry_constituents:
-                required_constituent_restart_vars.append(restart_var)
+    for required_var in all_req_vars:
+        stdname = required_var.get_prop_value('standard_name')
+        if stdname in restart_vars.keys():
+            diagnostic_name = restart_vars[stdname]
+            if stdname in registry_constituents:
+                required_constituent_restart_vars.append(diagnostic_name)
             else:
-                required_restart_vars.append(restart_var)
+                required_restart_vars.append(diagnostic_name)
             # end if
-        # end if (ignore all non-required variables)
+        # end if (ignore all non-restart variables)
     # end for
 
     return required_restart_vars, required_constituent_restart_vars

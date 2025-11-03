@@ -762,7 +762,7 @@ def generate_restart_routines(build_cache, bldroot, force_ccpp, force_restart,
     # Figure out if we need to generate new restart routines:
     if os.path.exists(restart_dir):
         # Check if registry and / or CCPP suites were modified:
-        if force_ccpp or force_init:
+        if force_ccpp or force_restart:
             do_gen_restart = True
         else:
             #If not, then check cache to see if actual
