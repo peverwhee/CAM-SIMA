@@ -456,7 +456,7 @@ CONTAINS
       !           file output.
       !
       !-----------------------------------------------------------------------
-!      use cam_restart,  only: cam_write_restart
+      use cam_restart,  only: cam_write_restart
 !      use qneg_module,  only: qneg_print_summary
 
       logical,         intent(in)           :: rstwr    ! write restart file
@@ -473,14 +473,10 @@ CONTAINS
          call t_startf('cam_write_restart')
          if (present(yr_spec) .and. present(mon_spec) .and.                   &
               present(day_spec).and.present(sec_spec)) then
-!!XXgoldyXX: v need to import this
-!            call cam_write_restart(cam_in, cam_out, dyn_out, yr_spec=yr_spec, &
-!                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
-!!XXgoldyXX: ^ need to import this
+            call cam_write_restart(dyn_out, yr_spec=yr_spec, &
+                 mon_spec=mon_spec, day_spec=day_spec, sec_spec= sec_spec)
          else
-!!XXgoldyXX: v need to import this
-!            call cam_write_restart(cam_in, cam_out, dyn_out)
-!!XXgoldyXX: ^ need to import this
+            call cam_write_restart(dyn_out)
          end if
          call t_stopf('cam_write_restart')
       end if
