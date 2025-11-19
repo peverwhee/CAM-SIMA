@@ -204,7 +204,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.write("integer, allocatable :: dimids(:)", 2)
     outfile.write("integer :: constituent_idx", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
-    outfile.write("character(len=256) :: const_stdname", 2)
+    outfile.write("character(len=256) :: const_diag_name", 2)
 
     outfile.blank_line()
 
@@ -287,14 +287,13 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
             outfile.write("return", 3)
             outfile.write("end if", 2)
             outfile.write("do constituent_idx = 1, size(const_props)", 2)
-            outfile.comment("Grab constituent standard name:", 3)
-            outfile.write("call const_props(constituent_idx)%standard_name(const_stdname)", 3)
+            outfile.comment("Grab constituent diagnostic name:", 3)
+            outfile.write("call const_props(constituent_idx)%diagnostic_name(const_diag_name)", 3)
             desc_name = f"{value['diag_name'].lower()}_desc"
             dimids_array = ", ".join([f"dimids({i})" for i in hdimids])
-            outfile.comment("PEVERWHEE todo: add diagnostic name and/or local name to constituents object. For now, use standard name", 3)
-            outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}_'//trim(const_stdname), pio_double, (/{dimids_array}/), {desc_name}(constituent_idx), existOK=.false.)", 3)
+            outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}_'//trim(const_diag_name), pio_double, (/{dimids_array}/), {desc_name}(constituent_idx), existOK=.false.)", 3)
             outfile.write("if (errflg /= 0) then", 3)
-            outfile.write(f"write(errmsg,*) 'restart_physics_init: error defining variable {value['diag_name']}_'//trim(const_stdname)", 4)
+            outfile.write(f"write(errmsg,*) 'restart_physics_init: error defining variable {value['diag_name']}_'//trim(const_diag_name)", 4)
             outfile.write("end if", 3)
             outfile.write("end do", 2)
             outfile.blank_line()
@@ -344,7 +343,7 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     outfile.write("integer                          :: rank", 2)
     outfile.write("integer                          :: constituent_idx", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
-    outfile.write("character(len=256)               :: const_stdname", 2)
+    outfile.write("character(len=256)               :: const_diag_name", 2)
 
 #    assigned_2d = False
 #    assigned_3d_layers = False
@@ -424,25 +423,13 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
         for key, value in constituent_dimmed_vars.items():
             outfile.comment(f"Handling for constituent-dimensioned variable '{value['diag_name']}'", 2)
             outfile.write("do constituent_idx = 1, size(const_props)", 2)
-            outfile.comment("Grab constituent standard name:", 3)
-            outfile.write("call const_props(constituent_idx)%standard_name(const_stdname)", 3)
             desc_name = f"{value['diag_name'].lower()}_desc"
             outfile.write("field_shape(1) = num_global_phys_cols", 3)
             outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, (/dims(1)/), (/field_shape(1)/), {key}(:,constituent_idx), {desc_name}(constituent_idx))", 3)
-#            outfile.write(f"call pio_write_darray(file, {desc_name}(constituent_idx), iodesc_2d, {key}(:,constituent_idx), errflg)", 3)
-#            outfile.write("if (errflg /= 0) then", 3)
-#            outfile.write(f"write(errmsg,*) 'restart_physics_write: error defining variable {value['diag_name']}_'//trim(const_stdname)", 4)
-#            outfile.write("end if", 3)
             outfile.write("end do", 2)
             outfile.blank_line()
         # end for
     # end if
-#    for key,value in required_vars.items():
-#        desc_name = f"{value['diag_name'].lower()}_desc"
-#        if len(value['dims']) == 1:
-#            outfile.write(f"call pio_write_darray(file, {desc_name}, iodesc, {key}, errflg)", 2)
-#        # end if
-#    # end for
     outfile.write("end subroutine restart_physics_write", 1)
 
 def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, used_vars):
