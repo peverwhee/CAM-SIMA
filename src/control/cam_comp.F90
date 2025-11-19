@@ -632,6 +632,7 @@ CONTAINS
          call host_constituents(1)%instantiate( &
               std_name=wv_stdname,              &
               long_name="water vapor mixing ratio w.r.t moist air and condensed_water", &
+              diag_name="Q",                                                            &
               units="kg kg-1",                                                          &
               default_value=0._kind_phys,                                               &
               vertical_dim="vertical_layer_dimension",                                  &
