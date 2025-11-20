@@ -51,7 +51,7 @@ try:
     # pylint change because of doctest import below
     from metadata_table import find_scheme_names
     #pylint: enable=redefined-outer-name
-    from parse_tools import read_xml_file
+    from parse_tools import read_xml_file, expand_nested_suites
     ##XXgoldyXX: See note below about when these imports can be removed
     from ccpp_datafile import DatatableReport
     from ccpp_datafile import datatable_report
@@ -467,6 +467,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
         sdfs.append(sdf_path)
         # Given an SDF, find all the schemes it calls
         _, suite = read_xml_file(sdf_path)
+        expand_nested_suites(suite, os.path.dirname(sdf_path), logger=_LOGGER)
         sdf_schemes = _find_schemes_in_sdf(suite)
         #Add schemes to set of all scheme names:
         scheme_names.update(sdf_schemes)
