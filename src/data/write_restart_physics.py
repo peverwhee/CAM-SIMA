@@ -117,11 +117,11 @@ def write_restart_physics(cap_database, ic_names, registry_constituents,
 
         # Write the restart init subroutine
         outfile.blank_line()
-        write_restart_physics_init(outfile, required_restart_vars, constituent_dimmed_vars, host_dict)
+        dim_use_stmts = write_restart_physics_init(outfile, required_restart_vars, constituent_dimmed_vars, host_dict)
 
         # Write the restart write subroutine
         outfile.blank_line()
-        write_restart_physics_write(outfile, required_restart_vars, constituent_dimmed_vars, used_vars)
+        write_restart_physics_write(outfile, required_restart_vars, constituent_dimmed_vars, used_vars, dim_use_stmts)
 
         # Write the restart read subroutine
         outfile.blank_line()
@@ -135,7 +135,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     routine initializes the physics fields on the restart (cam.r) file
     """
 
-    outfile.write("subroutine restart_physics_init(file, hdimids, errmsg, errflg)", 1)
+    outfile.write("subroutine restart_physics_init(file, errmsg, errflg)", 1)
 
     dimensions_dict = {}
     num_dimensions = 0
@@ -176,6 +176,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     static_use_stmts = [["pio", ["file_desc_t", "pio_double"]],
                  ["cam_pio_utils", ["cam_pio_def_dim", "cam_pio_def_var"]],
                  ["cam_ccpp_cap", ["cam_model_const_properties"]],
+                 ["physics_grid", ["num_global_phys_cols"]],
                  ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]]]
 
     # Gather up dimension imports
@@ -210,7 +211,7 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
 
     outfile.blank_line()
     outfile.comment("Allocate dimids to the number of unique dimensions", 2)
-    outfile.write(f"allocate(dimids({num_dimensions}), stat=errflg, errmsg=errmsg", 2)
+    outfile.write(f"allocate(dimids({num_dimensions}), stat=errflg, errmsg=errmsg)", 2)
     outfile.write("if (errflg /= 0) then", 2)
     outfile.write("return", 3)
     outfile.write("end if", 2)
@@ -301,8 +302,9 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     # end if
 
     outfile.write("end subroutine restart_physics_init", 1)
+    return dim_use_stmts
 
-def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars, used_vars):
+def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars, used_vars, dim_use_stmts):
     """
     Write the 'write' routine for the physics restart variables. This
     routine writes the physics fields to the restart (cam.r) file
@@ -314,10 +316,10 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
                  ["ccpp_kinds", ["kind_phys"]],
                  ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]],
                  ["physics_grid", ["num_global_phys_cols"]],
-                 ["vert_coord", ["pver", "pverp"]],
-                 ["cam_grid_support", ["cam_grid_id","cam_grid_dimensions","cam_grid_write_dist_array"]]]
+                 ["cam_grid_support", ["cam_grid_id", "cam_grid_write_dist_array"]]]
 
     write_use_statements(outfile, use_stmts, 2)
+    write_use_statements(outfile, dim_use_stmts, 2)
     for var in used_vars:
         outfile.write(f"use physics_types, only: {var}", 2)
     # end for
@@ -333,25 +335,16 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     outfile.blank_line()
 
     outfile.comment("Local variables", 2)
-#    outfile.write("type(io_desc_t),         pointer :: iodesc_2d", 2)
-#    outfile.write("type(io_desc_t),         pointer :: iodesc_3d_layers", 2)
-#    outfile.write("type(io_desc_t),         pointer :: iodesc_3d_interfaces", 2)
     outfile.write("integer                          :: dims(2)",   2)
     outfile.write("integer                          :: grid_decomp", 2)
     outfile.write("integer                          :: grid_dims(2)", 2)
     outfile.write("integer                          :: field_shape(2)", 2)
-    outfile.write("integer                          :: rank", 2)
     outfile.write("integer                          :: constituent_idx", 2)
     outfile.write("type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)", 2)
-    outfile.write("character(len=256)               :: const_diag_name", 2)
 
-#    assigned_2d = False
-#    assigned_3d_layers = False
-#    assigned_3d_interfaces = False
     outfile.comment("Grab physics grid", 2)
     outfile.write("grid_decomp = cam_grid_id('physgrid')", 2)
-    outfile.write("call cam_grid_dimensions(grid_decomp, grid_dims, rank)", 2)
-    outfile.write("dims(1) = grid_dims(1)", 2)
+    outfile.write("dims(1) = columns_on_task", 2)
     outfile.write("dims(2) = pver", 2)
     outfile.comment("Write required restart variables to the restart file", 2)
     for key, value in required_vars.items():
@@ -361,17 +354,18 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
             outfile.write("field_shape(1) = num_global_phys_cols", 2)
             outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, (/dims(1)/), (/field_shape(1)/), {key}, {desc_name})", 2)
         elif len(value["dims"]) == 2:
-            if 'vertical_layer_dimension' in value['dims'][1] and 'horizontal_dimension' in value['dims'][0]:
-                outfile.comment("Handle field with vertical layer dimension (pver)", 2)
+            if 'horizontal_dimension' in value['dims'][0]:
+                outfile.comment("Handle field with horizontal dimension and additional, vertical dimension", 2)
                 outfile.write("field_shape(1) = num_global_phys_cols", 2)
-                outfile.write("field_shape(2) = pver", 2)
+                outfile.write(f"field_shape(2) = size({key}, 2)", 2)
                 outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, {key}, {desc_name})", 2)
-            elif 'vertical_interface_dimsnsion' in value['dims'][1] and 'horizontal_dimension' in value['dims'][0]:
-                outfile.comment("Handle field with vertical layer dimension (pver)", 2)
-                outfile.write("field_shape(1) = num_global_phys_cols", 2)
-                outfile.write("field_shape(2) = pverp", 2)
+            else:
+                outfile.comment("Handle field with two non-horizontal dimensions", 2)
+                outfile.write(f"field_shape(1) = size({key}, 1)", 2)
+                outfile.write(f"field_shape(2) = size({key}, 2)", 2)
                 outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, {key}, {desc_name})", 2)
             # end if
+        # PEVERWHEE - TODO: handle >2 dims!
         # end if
     # end for
     """
