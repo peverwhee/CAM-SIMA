@@ -9,8 +9,7 @@ CONTAINS
   subroutine cam_write_restart(dyn_out, yr_spec, mon_spec, day_spec, sec_spec)
     use cam_filenames,    only: interpret_filename_spec
     use cam_pio_utils,    only: cam_pio_createfile, cam_pio_set_fill
-    use restart_dynamics, only: init_restart_dynamics
-!    use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
+    use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
     use restart_physics,  only: restart_physics_write, restart_physics_init
     use cam_instance,     only: inst_suffix
     use pio,              only: file_desc_t, io_desc_t, pio_double, pio_global
@@ -69,7 +68,7 @@ CONTAINS
     ierr = pio_put_att(fh, pio_global, 'caseid', caseid)
     ierr = pio_enddef(fh)
 
-!    call write_restart_dynamics(fh, dyn_out)
+    call write_restart_dynamics(fh, dyn_out)
 
     ! TODO: write ionosphere restart
 

@@ -11,46 +11,14 @@ module restart_dynamics
 ! adjustments into the run.  The restart file containing the unstructured
 ! grid format may also be used for an initial run.
 
-use shr_kind_mod,     only: r8 => shr_kind_r8
-use spmd_utils,       only: iam, masterproc
-
-use dyn_grid,         only: timelevel, fvm, elem, edgebuf
-use dyn_comp,         only: dyn_import_t, dyn_export_t, dyn_init, write_restart_unstruct
-use hycoef,           only: init_restart_hycoef, write_restart_hycoef, &
-                            hyai, hybi, ps0
-use ref_pres,         only: ptop_ref
-
-use pio,              only: pio_global, pio_unlimited, pio_offset_kind, pio_int, pio_double, &
-                            pio_seterrorhandling, pio_bcast_error, pio_noerr, &
-                            file_desc_t, var_desc_t, io_desc_t, &
-                            pio_inq_dimid, pio_inq_dimlen, pio_inq_varid, &
-                            pio_def_dim, pio_def_var,  &
-                            pio_enddef, &
-                            pio_initdecomp, pio_freedecomp, pio_setframe, &
-                            pio_put_att, pio_put_var, pio_write_darray, &
-                            pio_get_att, pio_get_var, pio_read_darray
-
-use cam_pio_utils,    only: pio_subsystem, cam_pio_handle_error
-use cam_grid_support, only: cam_grid_header_info_t, &
-                            cam_grid_write_var, cam_grid_get_decomp, cam_grid_dimensions
-
-use parallel_mod,     only: par
-use thread_mod,       only: horz_num_threads
-use dof_mod,          only: UniquePoints
-use element_mod,      only: element_t
-
-use edge_mod,         only: initEdgeBuffer, edgeVpack, edgeVunpack, FreeEdgeBuffer
-use edgetype_mod,     only: EdgeBuffer_t
-use bndry_mod,        only: bndry_exchange
-
-use fvm_control_volume_mod, only: fvm_struct
+use pio,              only: var_desc_t
 
 implicit none
 private
 save
 
 public :: init_restart_dynamics
-!public :: write_restart_dynamics
+public :: write_restart_dynamics
 !public :: read_restart_dynamics
 
 ! these variables are module data so they can be shared between the
@@ -79,13 +47,15 @@ subroutine init_nelem_tot()
 end subroutine init_nelem_tot
 
 subroutine init_restart_dynamics(file, dyn_out)
+   use hycoef,           only: init_restart_hycoef
    use cam_ccpp_cap,              only: cam_model_const_properties
    use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
-   use pio, only: file_desc_t
-   use dyn_comp, only: dyn_export_t
+   use pio, only: file_desc_t, pio_global, pio_unlimited, pio_double, pio_seterrorhandling
+   use pio, only: pio_bcast_error, pio_def_dim, pio_def_var, pio_put_att
+   use dyn_comp, only: dyn_export_t, write_restart_unstruct
    use cam_grid_support, only: cam_grid_header_info_t, cam_grid_id
    use cam_grid_support, only: cam_grid_write_attr
-   use dimensions_mod,   only: np, npsq, ne, nelemd, ntrac, fv_nphys
+   use dimensions_mod,   only: np, npsq, ne, nelemd, fv_nphys
    ! Define dimensions, variables, attributes for restart file.
 
    ! This is not really an "init" routine.  It is called before
@@ -174,11 +144,367 @@ subroutine init_restart_dynamics(file, dyn_out)
 end subroutine init_restart_dynamics
 
 !=========================================================================================
+
+subroutine write_restart_dynamics(File, dyn_out)
+  use control_mod,               only: qsplit
+  use pio,                       only: file_desc_t, pio_offset_kind, io_desc_t, pio_double
+  use pio,                       only: pio_initdecomp, pio_freedecomp, pio_setframe, pio_write_darray
+  use dyn_comp,                  only: dyn_export_t, write_restart_unstruct
+  use dyn_grid,                  only: timelevel
+  use cam_grid_support,          only: cam_grid_id, cam_grid_write_var, cam_grid_get_decomp, cam_grid_dimensions
+  use element_mod,               only: element_t
+  use fvm_control_volume_mod,    only: fvm_struct
+  use hycoef,                    only: write_restart_hycoef
+  use time_mod,                  only: TimeLevel_Qdp
+  use parallel_mod,              only: par
+  use dimensions_mod,            only: nc, np, npsq, ne, nelemd, fv_nphys, nlev
+  use cam_ccpp_cap,              only: cam_model_const_properties
+  use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
+  use cam_pio_utils,             only: pio_subsystem
+  use thread_mod,                only: horz_num_threads
+  use spmd_utils,                only: iam
+  use shr_kind_mod,              only: r8 => shr_kind_r8
+
+   type(file_desc_t), intent(inout) :: File
+   type(dyn_export_t), intent(in)   :: dyn_out
+
+   ! local variables
+   integer(pio_offset_kind), parameter :: t_idx = 1
+
+   type(element_t),  pointer :: elem(:)
+   type(fvm_struct), pointer :: fvm(:)
+
+   integer :: tl, tlqdp
+   integer :: i, ie, ii, j, k, m
+   integer :: ierr
+
+   integer :: grid_id
+   integer :: grid_dimlens(2)
+
+
+
+   integer :: array_lens(3)
+   integer :: file_lens(2)
+   type(io_desc_t), pointer :: iodesc3d_fvm
+   real(r8),    allocatable :: buf3d(:,:,:)
+   type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
+
+
+
+   character(len=*), parameter :: sub = 'write_restart_dynamics'
+   !----------------------------------------------------------------------------
+
+   call write_restart_hycoef(File)
+
+   tl = timelevel%n0
+   call TimeLevel_Qdp(timelevel, qsplit, tlQdp)
+   const_props => cam_model_const_properties()
+
+   if (iam .lt. par%nprocs) then
+      elem => dyn_out%elem
+      fvm => dyn_out%fvm
+   else
+      allocate (elem(0), fvm(0))
+   endif
+
+   ! write fields on GLL grid
+
+   if (write_restart_unstruct) then
+      call write_unstruct()
+   else
+      call write_elem()
+   end if
+
+   ! write CSLAM fields
+
+   if (fv_nphys > 0) then
+
+      grid_id = cam_grid_id('FVM')
+
+      ! write coords for FVM grid
+      call cam_grid_write_var(File, grid_id)
+
+      call cam_grid_dimensions(grid_id, grid_dimlens)
+      allocate(buf3d(nc*nc,nlev,nelemd))
+      array_lens = (/nc*nc, nlev, nelemd/)
+      file_lens  = (/grid_dimlens(1), nlev/)
+      call cam_grid_get_decomp(grid_id, array_lens, file_lens, pio_double, iodesc3d_fvm)
+
+      do ie = 1, nelemd
+         do k = 1, nlev
+            ii = 1
+            do j = 1, nc
+               do i = 1, nc
+                  buf3d(ii,k,ie) = fvm(ie)%dp_fvm(i,j,k)
+                  ii = ii + 1
+               end do
+            end do
+         end do
+      end do
+      call PIO_Setframe(file, dp_fvm_desc, t_idx)
+      call PIO_Write_Darray(file, dp_fvm_desc, iodesc3d_fvm, buf3d, ierr)
+
+      do m = 1, size(const_props)
+         do ie = 1, nelemd
+            do k = 1, nlev
+               ii = 1
+               do j = 1, nc
+                  do i = 1, nc
+                     buf3d(ii,k,ie) = fvm(ie)%c(i,j,k,m)
+                     ii = ii + 1
+                  end do
+               end do
+            end do
+         end do
+         call PIO_Setframe(file, c_fvm_desc(m), t_idx)
+         call PIO_Write_Darray(file, c_fvm_desc(m), iodesc3d_fvm, buf3d, ierr)
+      end do
+
+      deallocate(c_fvm_desc)
+      deallocate(buf3d)
+      ! should this call be made on a pointer?
+      !call pio_freedecomp(File, iodesc3d_fvm)
+
+   end if
+
+   if (iam >= par%nprocs) then
+      deallocate(elem, fvm)
+   endif
+
+!-------------------------------------------------------------------------------
+contains
+!-------------------------------------------------------------------------------
+
+subroutine write_elem()
+
+   ! local variables
+   integer          :: i, ie, j, k
+   integer          :: ierr
+   integer, pointer :: ldof(:)
+
+   type(io_desc_t)  :: iodesc2d, iodesc3d
+
+   real(kind=r8), pointer :: var3d(:,:,:,:), var2d(:,:,:)
+   !----------------------------------------------------------------------------
+
+   ldof => get_restart_decomp(elem, 1)
+   call PIO_InitDecomp(pio_subsystem, pio_double, (/nelem_tot*np*np/), ldof, iodesc2d)
+   deallocate(ldof)
+
+   ldof => get_restart_decomp(elem, nlev)
+   call PIO_InitDecomp(pio_subsystem, pio_double, (/nelem_tot*np*np,nlev/), ldof, iodesc3d)
+   deallocate(ldof)
+
+   allocate(var2d(np,np,nelemd))
+   allocate(var3d(np,np,nelemd,nlev))
+
+   !$omp parallel do num_threads(horz_num_threads) private(ie, j, i)
+   do ie = 1, nelemd
+      do j = 1, np
+         do i = 1, np
+            var2d(i,j,ie) = elem(ie)%state%psdry(i,j)
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, psdry_desc, t_idx)
+   call PIO_Write_Darray(File, psdry_desc, iodesc2d, var2d, ierr)
+
+   !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
+   do ie = 1, nelemd
+      do k = 1, nlev
+         do j = 1, np
+            do i = 1, np
+               var3d(i,j,ie,k) = elem(ie)%state%V(i,j,1,k,tl)
+            end do
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, Udesc, t_idx)
+   call PIO_Write_Darray(File, Udesc, iodesc3d, var3d, ierr)
+
+   !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
+   do ie = 1, nelemd
+      do k = 1, nlev
+         do j = 1, np
+            do i = 1, np
+               var3d(i,j,ie,k) = elem(ie)%state%V(i,j,2,k,tl)
+            end do
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, Vdesc, t_idx)
+   call PIO_Write_Darray(File, Vdesc, iodesc3d, var3d, ierr)
+
+   !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
+   do ie = 1, nelemd
+      do k = 1, nlev
+         do j = 1, np
+            do i = 1, np
+               var3d(i,j,ie,k) = elem(ie)%state%T(i,j,k,tl)
+            end do
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, Tdesc, t_idx)
+   call PIO_Write_Darray(File, Tdesc, iodesc3d, var3d, ierr)
+
+   do m = 1, size(const_props)
+
+      !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
+      do ie = 1, nelemd
+         do k = 1, nlev
+            do j = 1, np
+               do i = 1, np
+                  var3d(i,j,ie,k) = elem(ie)%state%Qdp(i,j,k,m,tlQdp)
+               end do
+            end do
+         end do
+      end do
+      call PIO_Setframe(File, Qdesc_dp(m), t_idx)
+      call PIO_Write_Darray(File, Qdesc_dp(m), iodesc3d, var3d, ierr)
+
+   end do
+
+   deallocate(var2d)
+   deallocate(var3d)
+   deallocate(qdesc_dp)
+
+   call pio_freedecomp(File, iodesc2d)
+   call pio_freedecomp(File, iodesc3d)
+
+end subroutine write_elem
+
+!-------------------------------------------------------------------------------
+
+subroutine write_unstruct()
+
+   ! local variables
+   integer          :: i, ie, ii, j, k
+   integer          :: ierr
+
+   integer :: array_lens_3d(3), array_lens_2d(2)
+   integer :: file_lens_2d(2), file_lens_1d(1)
+
+   type(io_desc_t), pointer :: iodesc
+   real(r8),    allocatable :: var2d(:,:), var3d(:,:,:)
+   !----------------------------------------------------------------------------
+
+   grid_id = cam_grid_id('GLL')
+
+   ! write coordinate variables for unstructured GLL grid
+   call cam_grid_write_var(File, grid_id)
+
+   ! create map for distributed write
+   call cam_grid_dimensions(grid_id, grid_dimlens)
+
+   ! create map for distributed write of 2D fields
+   array_lens_2d = (/npsq, nelemd/)
+   file_lens_1d  = (/grid_dimlens(1)/)
+   call cam_grid_get_decomp(grid_id, array_lens_2d, file_lens_1d, pio_double, iodesc)
+
+   allocate(var2d(npsq,nelemd))
+
+   do ie = 1, nelemd
+      ii = 1
+      do j = 1, np
+         do i = 1, np
+            var2d(ii,ie) = elem(ie)%state%psdry(i,j)
+            ii = ii + 1
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, psdry_desc, t_idx)
+   call PIO_Write_Darray(File, psdry_desc, iodesc, var2d, ierr)
+
+   nullify(iodesc)
+   deallocate(var2d)
+
+   ! create map for distributed write of 3D fields
+   array_lens_3d = (/npsq, nlev, nelemd/)
+   file_lens_2d  = (/grid_dimlens(1), nlev/)
+   call cam_grid_get_decomp(grid_id, array_lens_3d, file_lens_2d, pio_double, iodesc)
+
+   allocate(var3d(npsq,nlev,nelemd))
+
+   do ie = 1, nelemd
+      do k = 1, nlev
+         ii = 1
+         do j = 1, np
+            do i = 1, np
+               var3d(ii,k,ie) = elem(ie)%state%V(i,j,1,k,tl)
+               ii = ii + 1
+            end do
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, Udesc, t_idx)
+   call PIO_Write_Darray(File, Udesc, iodesc, var3d, ierr)
+
+   do ie = 1, nelemd
+      do k = 1, nlev
+         ii = 1
+         do j = 1, np
+            do i = 1, np
+               var3d(ii,k,ie) = elem(ie)%state%V(i,j,2,k,tl)
+               ii = ii + 1
+            end do
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, Vdesc, t_idx)
+   call PIO_Write_Darray(File, Vdesc, iodesc, var3d, ierr)
+
+   do ie = 1, nelemd
+      do k = 1, nlev
+         ii = 1
+         do j = 1, np
+            do i = 1, np
+               var3d(ii,k,ie) = elem(ie)%state%T(i,j,k,tl)
+               ii = ii + 1
+            end do
+         end do
+      end do
+   end do
+   call PIO_Setframe(File, Tdesc, t_idx)
+   call PIO_Write_Darray(File, Tdesc, iodesc, var3d, ierr)
+
+   do m = 1, size(const_props)
+
+      !$omp parallel do num_threads(horz_num_threads) private(ie, k, j, i)
+      do ie = 1, nelemd
+         do k = 1, nlev
+            ii = 1
+            do j = 1, np
+               do i = 1, np
+                  var3d(ii,k,ie) = elem(ie)%state%Qdp(i,j,k,m,tlQdp)
+                  ii = ii + 1
+               end do
+            end do
+         end do
+      end do
+      call PIO_Setframe(File, Qdesc_dp(m), t_idx)
+      call PIO_Write_Darray(File, Qdesc_dp(m), iodesc, var3d, ierr)
+
+   end do
+
+   deallocate(var3d)
+   deallocate(qdesc_dp)
+
+end subroutine write_unstruct
+
+!-------------------------------------------------------------------------------
+
+end subroutine write_restart_dynamics
+
+!=========================================================================================
+
+!=========================================================================================
 ! Private
 !=========================================================================================
 
 function get_restart_decomp(elem, lev) result(ldof)
    use dimensions_mod, only: nelemd, np
+   use element_mod,    only: element_t
 
    ! Get the integer mapping of a variable in the dynamics decomp in memory.
    ! The canonical ordering is as on the file. A 0 value indicates that the
@@ -209,6 +535,7 @@ end function get_restart_decomp
 
 function get_restart_decomp_fvm(elem, lev) result(ldof)
    use dimensions_mod, only: nc, nelemd
+   use element_mod,    only: element_t
 
    type(element_t), intent(in) :: elem(:)
    integer,         intent(in) :: lev
