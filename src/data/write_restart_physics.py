@@ -293,9 +293,6 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
             desc_name = f"{value['diag_name'].lower()}_desc"
             dimids_array = ", ".join([f"dimids({i})" for i in hdimids])
             outfile.write(f"call cam_pio_def_var(file, '{value['diag_name']}_'//trim(const_diag_name), pio_double, (/{dimids_array}/), {desc_name}(constituent_idx), existOK=.false.)", 3)
-            outfile.write("if (errflg /= 0) then", 3)
-            outfile.write(f"write(errmsg,*) 'restart_physics_init: error defining variable {value['diag_name']}_'//trim(const_diag_name)", 4)
-            outfile.write("end if", 3)
             outfile.write("end do", 2)
             outfile.blank_line()
         # end for
@@ -309,7 +306,7 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
     Write the 'write' routine for the physics restart variables. This
     routine writes the physics fields to the restart (cam.r) file
     """
-    outfile.write("subroutine restart_physics_write(file, gdims, nhdims, grid_id, errmsg, errflg)", 1)
+    outfile.write("subroutine restart_physics_write(file, grid_id, errmsg, errflg)", 1)
 
     use_stmts = [["pio", ["file_desc_t", "io_desc_t", "pio_write_darray", "pio_double"]],
                  ["cam_ccpp_cap", ["cam_model_const_properties","cam_constituents_array"]],
@@ -326,8 +323,6 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
 
     outfile.blank_line()
     outfile.write("type(file_desc_t), intent(inout) :: file",   2)
-    outfile.write("integer,            intent(in)   :: gdims(:)",  2)
-    outfile.write("integer,            intent(in)   :: nhdims", 2)
     outfile.write("integer,            intent(in)   :: grid_id", 2)
     outfile.write("character(len=512),intent(out)   :: errmsg", 2)
     outfile.write("integer,           intent(out)   :: errflg", 2)
@@ -353,63 +348,18 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
             outfile.comment("Handle horizontal-only field", 2)
             outfile.write("field_shape(1) = num_global_phys_cols", 2)
             outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, (/dims(1)/), (/field_shape(1)/), {key}, {desc_name})", 2)
-        elif len(value["dims"]) == 2:
-            if 'horizontal_dimension' in value['dims'][0]:
-                outfile.comment("Handle field with horizontal dimension and additional, vertical dimension", 2)
-                outfile.write("field_shape(1) = num_global_phys_cols", 2)
-                outfile.write(f"field_shape(2) = size({key}, 2)", 2)
-                outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, {key}, {desc_name})", 2)
-            else:
-                outfile.comment("Handle field with two non-horizontal dimensions", 2)
-                outfile.write(f"field_shape(1) = size({key}, 1)", 2)
-                outfile.write(f"field_shape(2) = size({key}, 2)", 2)
-                outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, {key}, {desc_name})", 2)
-            # end if
-        # PEVERWHEE - TODO: handle >2 dims!
-        # end if
-    # end for
-    """
-    for key, value in required_vars.items():
-        if len(value['dims']) == 1:
-            iodesc = 'iodesc_2d'
-            if not assigned_2d:
-                # Associate the 2d iodesc pointer
-                outfile.write("dims(1) = columns_on_task", 2)
-                outfile.write(f"call cam_grid_get_decomp(grid_id, (/dims(1)/), gdims(1:nhdims), pio_double, {iodesc})", 2)
-                assigned_2d = True
-            # end if
-        else:
-            for dim in value['dims']:
-                if 'vertical_layer_dimension' in dim:
-                    iodesc = 'iodesc_3d_layers'
-                    if not assigned_3d_layers:
-                        # Associate the 3d iodesc pointer for layers
-                        outfile.write("dims(1) = columns_on_task", 2)
-                        outfile.write("dims(2) = pver", 2)
-                        outfile.write(f"call cam_grid_get_decomp(grid_id, dims(1:2), gdims(1:nhdims), pio_double, {iodesc})", 2)
-                        assigned_3d_layers = True
-                    # end if
-                elif 'vertical_interface_dimension' in dim:
-                    iodesc = 'iodesc_3d_interfaces'
-                    if not assigned_3d_interfaces:
-                        # Associate the 3d iodesc pointer for interfaces
-                        outfile.write("dims(1) = columns_on_task", 2)
-                        outfile.write("dims(2) = pverp", 2)
-                        outfile.write(f"call cam_grid_get_decomp(grid_id, dims(1:2), gdims(1:nhdims), pio_double, {iodesc})", 2)
-                        assigned_3d_layers = True
-                    # end if
+        elif len(value["dims"]) > 1:
+            for index, dim in enumerate(value["dims"]):
+                if 'horizontal_dimension' in dim:
+                    outfile.write("field_shape(1) = num_global_phys_cols", 2)
+                else:
+                    outfile.write(f"field_shape({index + 1}) = size({key}, {index + 1})", 2)
                 # end if
             # end if
+            outfile.write(f"call cam_grid_write_dist_array(file, grid_decomp, dims, field_shape, {key}, {desc_name})", 2)
         # end if
-        desc_name = f"{value['diag_name'].lower()}_desc"
-        outfile.write(f"call pio_write_darray(file, {desc_name}, {iodesc}, {key}, errflg)", 2)
-        outfile.write("if (errflg /= 0) then", 2)
-        outfile.write(f"write(errmsg,*) 'restart_physics_write: error writing variable {value['diag_name']}'", 3)
-        outfile.write("return", 3)
-        outfile.write("end if", 2)
-        outfile.blank_line()
     # end for
-"""
+
     # Handle constituent-dimensioned variables
     if constituent_dimmed_vars:
         outfile.write("const_props => cam_model_const_properties()", 2)

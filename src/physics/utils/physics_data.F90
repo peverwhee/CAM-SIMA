@@ -446,6 +446,8 @@ CONTAINS
 
       if(.not. var_found .and. error_on_not_found_local) then
          call endrun(subname//'Required constituent-dimensioned variables not found: No match for ' // trim(std_name))
+      else if (.not. var_found) then
+         return
       end if
 
       ! Once base_idx is identified, use it in the actual constituent loop:

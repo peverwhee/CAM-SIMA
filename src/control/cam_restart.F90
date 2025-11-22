@@ -9,7 +9,8 @@ CONTAINS
   subroutine cam_write_restart(dyn_out, yr_spec, mon_spec, day_spec, sec_spec)
     use cam_filenames,    only: interpret_filename_spec
     use cam_pio_utils,    only: cam_pio_createfile, cam_pio_set_fill
-    !use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
+    use restart_dynamics, only: init_restart_dynamics
+!    use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
     use restart_physics,  only: restart_physics_write, restart_physics_init
     use cam_instance,     only: inst_suffix
     use pio,              only: file_desc_t, io_desc_t, pio_double, pio_global
@@ -22,8 +23,6 @@ CONTAINS
     use cam_control_mod,  only: caseid
     use cam_abortutils,   only: endrun, check_allocate
     use shr_kind_mod,     only: cl=>shr_kind_cl
-    use vert_coord, only: pver
-    use cam_logfile, only: iulog
 
     ! Arguments
     type(dyn_export_t),      intent(in) :: dyn_out
@@ -39,12 +38,9 @@ CONTAINS
     integer           :: ierr, i, errflg
     character(len=512) :: errmsg
     integer           :: grid_id
-    integer           :: hdimcnt
-    integer           :: dimids(4)
     integer           :: dims(3), gdims(3)
     integer           :: nhdims, ndims
     type(io_desc_t), pointer     :: iodesc
-    integer, allocatable         :: hdimids(:)
     type(cam_grid_header_info_t) :: info
 
     ! Set template for primary restart filename based on instance suffix
@@ -56,21 +52,13 @@ CONTAINS
     call cam_pio_createfile(fh, trim(fname), 0)
     ierr = cam_pio_set_fill(fh)
 
-!    call init_restart_dynamics(fh, dyn_out)
+    call init_restart_dynamics(fh, dyn_out)
 
     ! TODO: initialize ionosphere restart
 
-    ! Grab physics grid info
+    ! Initialize physics grid variable
     grid_id = cam_grid_id('physgrid')
     call cam_grid_write_attr(fh, grid_id, info)
-    hdimcnt = info%num_hdims()
-
-    allocate(hdimids(hdimcnt), stat=ierr, errmsg=errmsg)
-    call check_allocate(ierr, 'cam_write_restart', 'hdimids', errmsg)
-
-    do i = 1, hdimcnt
-       hdimids(i) = info%get_hdimid(i)
-    end do
 
     call restart_physics_init(fh, errmsg, errflg)
     if (errflg /= 0) then
@@ -85,23 +73,11 @@ CONTAINS
 
     ! TODO: write ionosphere restart
 
-
     ! Write physics grid info
-    ndims = nhdims + 1
     call cam_grid_write_var(fh, phys_decomp)
-    call cam_grid_dimensions(grid_id, gdims(1:3), nhdims)
-!    dims(1) = columns_on_task
-!    call cam_grid_get_decomp(grid_id, (/dims(1)/), gdims(1:nhdims), &
-!               pio_double, iodesc)
-    !dims(1) = num_global_phys_cols
-    !dims(2) = pver
-    !write(iulog,*) 'peverwhee - physics grid dims'
-    !write(iulog,*) nhdims
-    !write(iulog,*) dims
-    !write(iulog,*) gdims
-    !gdims(2) = pver
-    !call cam_grid_get_decomp(grid_id, dims(1:2), gdims(1:2), pio_double, iodesc)
-    call restart_physics_write(fh, gdims, nhdims, grid_id, errmsg, errflg)
+
+    ! Write physics restart variables
+    call restart_physics_write(fh, grid_id, errmsg, errflg)
     if (errflg /= 0) then
        call endrun(errmsg)
     end if
