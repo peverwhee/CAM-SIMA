@@ -98,7 +98,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%latitude(horizontal_dimension))
-    if (set_init_val .and. .not. is_initialized('latitude', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%latitude = nan
     end if
     if (associated(phys_state%longitude)) then
@@ -110,7 +110,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%longitude(horizontal_dimension))
-    if (set_init_val .and. .not. is_initialized('longitude', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%longitude = nan
     end if
     if (associated(phys_state%wind%u)) then
@@ -122,7 +122,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%wind%u(horizontal_dimension, vertical_layer_dimension))
-    if (set_init_val .and. .not. is_initialized('x_wind', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%wind%u = nan
     end if
     if (associated(phys_state%wind%v)) then
@@ -134,15 +134,13 @@ CONTAINS
       end if
     end if
     allocate(phys_state%wind%v(horizontal_dimension, vertical_layer_dimension))
-    if (set_init_val .and. .not. is_initialized('y_wind', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%wind%v = nan
     end if
-    if (set_init_val .and. .not. is_initialized('horizontal_dimension',                           &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%ncol = 0
     end if
-    if (set_init_val .and. .not. is_initialized('vertical_layer_dimension',                       &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%pver = 0
     end if
   end subroutine allocate_physics_types_ddt2_fields

@@ -36,7 +36,6 @@
     <use module="runtime_obj" reference="unset_real"/>
     <use module="phys_vars_init_check" reference="mark_as_initialized"/>
     <use module="phys_vars_init_check" reference="is_initialized"/>
-    <use module="phys_vars_init_check" reference="is_parameter"/>
     <use module="physconst" reference="cpair"/>
     <use module="physconst" reference="rair"/>
     <use module="physconst" reference="mwdry"/>
@@ -1687,6 +1686,7 @@
               units="1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>LAMBDAC pbuf_LAMBDAC</ic_file_input_names>
     </variable>
     <variable local_name="pgam"
@@ -1694,6 +1694,7 @@
               units="1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>MU pbuf_MU</ic_file_input_names>
     </variable>
     <variable local_name="iclwpth"
@@ -1701,6 +1702,7 @@
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>ICLWP pbuf_ICLWP</ic_file_input_names>
     </variable>
     <variable local_name="iciwpth"
@@ -1708,6 +1710,7 @@
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>ICIWP pbuf_ICIWP</ic_file_input_names>
     </variable>
     <variable local_name="icswpth"
@@ -1715,6 +1718,7 @@
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>ICSWP pbuf_ICSWP</ic_file_input_names>
     </variable>
     <variable local_name="dei"
@@ -1722,6 +1726,7 @@
               units="micron" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DEI pbuf_DEI</ic_file_input_names>
     </variable>
     <variable local_name="des"
@@ -1729,6 +1734,7 @@
               units="micron" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>DES pbuf_DES</ic_file_input_names>
     </variable>
     <variable local_name="qrs"
@@ -1736,6 +1742,7 @@
               units="J Pa kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRS pbuf_QRS</ic_file_input_names>
     </variable>
     <variable local_name="qrl"
@@ -1743,6 +1750,7 @@
               units="J Pa kg-1 s-1" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+      <initial_value>0._kind_phys</initial_value>
       <ic_file_input_names>QRL pbuf_QRL</ic_file_input_names>
     </variable>
     <variable local_name="two"

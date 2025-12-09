@@ -159,7 +159,7 @@ CONTAINS
 
    end subroutine mark_as_read_from_file
 
-   logical function is_initialized(varname, error_on_not_found)
+   logical function is_initialized(varname)
 
       ! This function checks if the variable, <varname>, is already
       !    initialized according to the 'initialized_vars' array.
@@ -168,22 +168,14 @@ CONTAINS
 
       ! Dummy argument
       character(len=*), intent(in) :: varname ! Variable name being checked
-      logical, optional, intent(in) :: error_on_not_found
 
       ! Local variables
       integer                     :: stdnam_idx ! Standard name array index
       logical                     :: found      ! Check that <varname> was found
-      logical                     :: error_on_not_found_loc
       character(len=*), parameter :: subname = 'is_initialized: '
 
       is_initialized = .false.
       found = .false.
-
-      if (present(error_on_not_found)) then
-         error_on_not_found_loc = error_on_not_found
-      else
-         error_on_not_found_loc = .true.
-      end if
 
       ! Check if variable is initialized (PARAM, INITIALIZED, or READ_FROM_FILE)
       do stdnam_idx = 1, phys_var_num
@@ -194,7 +186,7 @@ CONTAINS
          end if
       end do
 
-      if (.not. found .and. error_on_not_found_loc) then
+      if (.not. found) then
          ! This condition is an internal error, it should not happen
          call endrun(subname//": Variable '"//trim(varname)//                 &
               "' is missing from phys_var_stdnames array.")
