@@ -1636,6 +1636,7 @@
       <initial_value>.true.</initial_value>
       <initial_value dyn="SE,MPAS"> .false. </initial_value>
     </variable>
+
     <!-- Radiation variables -->
     <variable local_name="dt_avg"
               standard_name="averaging_time_interval_for_solar_zenith_angle_calculation"
@@ -1750,21 +1751,16 @@
 	      allocatable="parameter">
       <initial_value>2</initial_value>
     </variable>
-    <!--
-    <variable local_name="nmu"
-              standard_name="number_of_gamma_distribution_shape_parameters_on_liquid_optics_grid"
-              units="count" type="integer">
-      <initial_value>-1</initial_value>
+    <variable local_name="snow_exists"
+	      standard_name="include_liquid_plus_snow_stratiform_cloud_area_fraction"
+	    units="flag" type="logical">
+      <initial_value>.false.</initial_value>
+      <initial_value dyn="none"> .true. </initial_value>
     </variable>
-    <variable local_name="nlambda"
-              standard_name="number_of_gamma_distribution_slope_parameters_on_liquid_optics_grid"
-              units="count" type="integer">
-      <initial_value>-1</initial_value>
+    <variable local_name="grau_exists"
+	      standard_name="include_liquid_plus_graupel_stratiform_cloud_area_fraction"
+	    units="flag" type="logical">
+      <initial_value>.false.</initial_value>
     </variable>
-    <variable local_name="n_g_d"
-              standard_name="number_of_radiative_effective_diameter_samples_on_ice_optics_grid"
-              units="count" type="integer">
-      <initial_value>-1</initial_value>
-    </variable>-->
   </file>
 </registry>
