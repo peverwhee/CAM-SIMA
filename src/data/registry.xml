@@ -1706,7 +1706,7 @@
       <ic_file_input_names>ICLWP pbuf_ICLWP</ic_file_input_names>
     </variable>
     <variable local_name="iciwpth"
-              standard_name="cloud_ice_water_path"
+              standard_name="in_cloud_ice_water_path"
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1714,7 +1714,7 @@
       <ic_file_input_names>ICIWP pbuf_ICIWP</ic_file_input_names>
     </variable>
     <variable local_name="icswpth"
-              standard_name="cloud_snow_water_path"
+              standard_name="in_cloud_snow_water_path"
               units="kg m-2" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
@@ -1723,7 +1723,7 @@
     </variable>
     <variable local_name="dei"
               standard_name="effective_diameter_of_stratiform_cloud_ice_particle_for_radiation"
-              units="micron" type="real" kind="kind_phys"
+              units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
@@ -1731,7 +1731,7 @@
     </variable>
     <variable local_name="des"
               standard_name="effective_diameter_of_stratiform_snow_particle_for_radiation"
-              units="micron" type="real" kind="kind_phys"
+              units="um" type="real" kind="kind_phys"
               allocatable="allocatable">
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <initial_value>0._kind_phys</initial_value>
@@ -1763,7 +1763,7 @@
 	      standard_name="include_liquid_plus_snow_stratiform_cloud_area_fraction"
 	    units="flag" type="logical">
       <initial_value>.false.</initial_value>
-      <initial_value dyn="none"> .true. </initial_value>
+      <initial_value dyn="NONE"> .true. </initial_value>
     </variable>
     <variable local_name="grau_exists"
 	      standard_name="include_liquid_plus_graupel_stratiform_cloud_area_fraction"
