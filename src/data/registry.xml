@@ -397,6 +397,13 @@
       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
       <ic_file_input_names>dvdt tend_dvdt</ic_file_input_names>
     </variable>
+    <variable local_name="heating_rate"
+	      standard_name="tendency_of_dry_air_enthalpy_at_constant_pressure"
+	      units="J kg-1 s-1" type="real" kind="kind_phys"
+	      allocatable="allocatable">
+       <dimensions>horizontal_dimension vertical_layer_dimension</dimensions>
+       <initial_value>unset_real</initial_value>
+    </variable>
     <variable local_name="lagrangian_vertical"
               standard_name="do_lagrangian_vertical_coordinate"
               units="flag" type="logical" access="protected">
