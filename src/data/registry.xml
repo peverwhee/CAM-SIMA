@@ -3,12 +3,14 @@
 <registry name="cam_registry" version="1.0">
   <!-- CAM-SIMA Host model meta files -->
   <!-- Meta-files with DDTs must be listed first -->
+  <!-- BEGIN Metadata files provided by RRTMGP via atmospheric_physics -->
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_fluxes_byband.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_fluxes.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_gas_concentrations.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_gas_optics_rrtmgp.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_optical_props.meta</metadata_file>
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/schemes/rrtmgp/objects/ccpp_source_functions.meta</metadata_file>
+  <!-- END Metadata files provided by RRTMGP via atmospheric_physics -->
   <metadata_file>$SRCROOT/src/physics/ncar_ccpp/to_be_ccppized/coords_1d.meta</metadata_file>
   <metadata_file>$SRCROOT/src/utils/spmd_utils.meta</metadata_file>
   <metadata_file>$SRCROOT/src/control/cam_control_mod.meta</metadata_file>
@@ -1769,8 +1771,7 @@
     <variable local_name="snow_exists"
 	      standard_name="include_liquid_plus_snow_stratiform_cloud_area_fraction"
 	    units="flag" type="logical">
-      <initial_value>.false.</initial_value>
-      <initial_value dyn="NONE"> .true. </initial_value>
+      <initial_value>.true.</initial_value>
     </variable>
     <variable local_name="grau_exists"
 	      standard_name="include_liquid_plus_graupel_stratiform_cloud_area_fraction"

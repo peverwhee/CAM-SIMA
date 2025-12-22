@@ -113,8 +113,6 @@ CONTAINS
       lambm0 = lambm0_in
       mvelpp = mvelpp_in
 
-      call mark_as_initialized('planet_orbital_eccentricity_factor')
-
    end subroutine cam_ctrl_set_orbit
 
 end module cam_control_mod
