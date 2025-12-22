@@ -9,5 +9,5 @@
 ./xmlchange OPENACC_GPU_OFFLOAD=TRUE
 ./xmlchange OVERSUBSCRIBE_GPU=TRUE
 ./xmlchange NGPUS_PER_NODE=4
-./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites rrtmgp_gpu"
+./xmlchange CAM_CONFIG_OPTS="--dyn none --physics-suites rrtmgp"
 ./xmlchange RUN_STARTDATE=1979-01-01
