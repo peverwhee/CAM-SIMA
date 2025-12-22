@@ -107,17 +107,13 @@ CONTAINS
       reallocate = .false.
     end if
 
-    if (set_init_val .and. .not. is_initialized('index_of_water_vapor_specific_humidity',         &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       ix_qv = 1
     end if
-    if (set_init_val .and. .not.                                                                  &
-         is_initialized('index_of_cloud_liquid_water_mixing_ratio_of_moist_air',                  &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       ix_cld_liq = 2
     end if
-    if (set_init_val .and. .not. is_initialized('standard_non_ddt_variable',                      &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       standard_var = nan
     end if
     if (allocated(cappav)) then
@@ -128,9 +124,7 @@ CONTAINS
       end if
     end if
     allocate(cappav(horizontal_dimension, vertical_layer_dimension))
-    if (set_init_val .and. .not.                                                                  &
-         is_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure',&
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       cappav = 1 + rair/cpair - rair * 2
       call                                                                                        &
            mark_as_initialized('composition_dependent_ratio_of_dry_air_gas_constant_to_specific_heat_at_constant_pressure')
@@ -145,7 +139,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%latitude(horizontal_dimension))
-    if (set_init_val .and. .not. is_initialized('latitude', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%latitude = nan
     end if
     if (associated(phys_state%longitude)) then
@@ -157,7 +151,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%longitude(horizontal_dimension))
-    if (set_init_val .and. .not. is_initialized('longitude', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%longitude = nan
     end if
     if (associated(phys_state%wind%u)) then
@@ -169,7 +163,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%wind%u(horizontal_dimension, vertical_layer_dimension))
-    if (set_init_val .and. .not. is_initialized('x_wind', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%wind%u = nan
     end if
     if (associated(phys_state%wind%v)) then
@@ -181,7 +175,7 @@ CONTAINS
       end if
     end if
     allocate(phys_state%wind%v(horizontal_dimension, vertical_layer_dimension))
-    if (set_init_val .and. .not. is_initialized('y_wind', error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%wind%v = nan
     end if
     if (associated(phys_state%q)) then
@@ -194,24 +188,19 @@ CONTAINS
     end if
     allocate(phys_state%q(horizontal_dimension, vertical_layer_dimension,                         &
          number_of_ccpp_constituents))
-    if (set_init_val .and. .not. is_initialized('constituent_mixing_ratio',                       &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%q = nan
     end if
-    if (set_init_val .and. .not. is_initialized('water_vapor_specific_humidity',                  &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%q(:,:,ix_qv) = nan
     end if
-    if (set_init_val .and. .not. is_initialized('cloud_liquid_water_mixing_ratio_of_moist_air',   &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%q(:,:,ix_cld_liq) = nan
     end if
-    if (set_init_val .and. .not. is_initialized('horizontal_dimension',                           &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%ncol = 1
     end if
-    if (set_init_val .and. .not. is_initialized('vertical_layer_dimension',                       &
-         error_on_not_found=.false.)) then
+    if (set_init_val) then
       phys_state%pver = 0
     end if
   end subroutine allocate_physics_types_complete_fields
