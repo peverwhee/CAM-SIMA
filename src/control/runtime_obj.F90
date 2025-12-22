@@ -26,10 +26,6 @@ module runtime_obj
       character(len=CS), private            :: phys_suite = unset_str
       character(len=CS), private            :: dycore     = unset_str
       character(len=16), private            :: waccmx_opt = unset_str
-      ! use_gw_front: Frontogenesis
-      logical,           private :: use_gw_front = .false.
-      ! use_gw_front_igw: Frontogenesis to inertial spectrum.
-      logical,           private :: use_gw_front_igw = .false.
       ! update_thermo_variables: update thermo "constants" to composition-dependent thermo variables
       logical,           private :: update_thermo_variables = .false.
    contains
@@ -40,8 +36,6 @@ module runtime_obj
       ! Runtime parameters of interest to dycore
       procedure, public :: waccmx_on
       procedure, public :: waccmx_option
-      procedure, public :: gw_front
-      procedure, public :: gw_front_igw
       procedure, public :: update_thermodynamic_variables
    end type runtime_options
 
@@ -88,20 +82,6 @@ CONTAINS
 
    end function waccmx_option
 
-   pure logical function gw_front(self)
-      class(runtime_options), intent(in) :: self
-
-      gw_front = self%use_gw_front
-
-   end function gw_front
-
-   pure logical function gw_front_igw(self)
-      class(runtime_options), intent(in) :: self
-
-      gw_front_igw = self%use_gw_front_igw
-
-   end function gw_front_igw
-
    pure logical function update_thermodynamic_variables(self)
       class(runtime_options), intent(in) :: self
 
@@ -116,14 +96,12 @@ CONTAINS
 
    end subroutine set_cam_dycore
 
-   subroutine cam_set_runtime_opts(phys_suite, waccmx_opt,                    &
-        gw_front, gw_front_igw)
+   subroutine cam_set_runtime_opts(phys_suite, waccmx_opt)
       use cam_abortutils, only: endrun
+
       ! Initialize the CAM runtime object
       character(len=CS), intent(in) :: phys_suite
       character(len=16), intent(in) :: waccmx_opt
-      logical,           intent(in) :: gw_front
-      logical,           intent(in) :: gw_front_igw
 
       if (runtime_configured) then
          ! We might need more action to reset this so do not allow it now
@@ -132,8 +110,6 @@ CONTAINS
 
       cam_runtime_opts%phys_suite = trim(phys_suite)
       cam_runtime_opts%waccmx_opt = trim(waccmx_opt)
-      cam_runtime_opts%use_gw_front = gw_front
-      cam_runtime_opts%use_gw_front_igw = gw_front_igw
       cam_runtime_opts%update_thermo_variables = (trim(waccmx_opt) == 'ionosphere' .or. &
             trim(waccmx_opt) == 'neutral')
 

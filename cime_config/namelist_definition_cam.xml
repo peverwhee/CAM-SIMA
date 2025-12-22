@@ -438,6 +438,16 @@
     </desc>
     <values>
       <value>-99</value>
+<!-- Gravity wave ridge parameterization inputs -->
+  <entry id="bnd_rdggm">
+    <type>char*256</type>
+    <category>gravity_wave_drag</category>
+    <group>gw_drag_input_nl</group>
+    <desc>
+      Full pathname of boundary dataset for meso-gamma ridges.
+    </desc>
+    <values>
+      <value>UNSET_PATH</value>
     </values>
   </entry>
 
