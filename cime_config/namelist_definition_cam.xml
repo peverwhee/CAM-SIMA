@@ -438,6 +438,8 @@
     </desc>
     <values>
       <value>-99</value>
+    </values>
+  </entry>
 <!-- Gravity wave ridge parameterization inputs -->
   <entry id="bnd_rdggm">
     <type>char*256</type>
