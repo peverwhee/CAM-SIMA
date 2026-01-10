@@ -497,7 +497,7 @@ class ArrayElement(VarBase):
                                         ', '.join(dimensions)))
         # end if
         local_name = f'{parent_name}({self.index_string})'
-        super().__init__(elem_node, local_name, my_dimensions,
+        super().__init__(elem_node, local_name, my_dimensions, [],
                                            known_types, parent_type,
                                            units_default=parent_units,
                                            kind_default=parent_kind,
@@ -603,7 +603,7 @@ class Variable(VarBase):
                     else:
                         # We need to allocate this array
                         def_dims.append(':')
-                        # For variables that are parameters in the registery,
+                        # For variables that are parameters in the registry,
                         # we need to use the local name
                         for ddim in dimstrs:
                             lname = Variable.constant_dimension(ddim)
