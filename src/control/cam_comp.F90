@@ -102,6 +102,7 @@ CONTAINS
       use vert_coord,                only: pver
       use phys_vars_init_check,      only: mark_as_initialized
       use tropopause_climo_read,     only: tropopause_climo_read_file
+      use gravity_wave_drag_ridge_read, only: gravity_wave_drag_ridge_read_file
       use orbital_data,              only: orbital_data_init
       use ccpp_kinds,                only: kind_phys
       use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
@@ -193,7 +194,6 @@ CONTAINS
       call mark_as_initialized('fractional_calendar_days_on_end_of_next_timestep')
       call mark_as_initialized('number_of_seconds_until_next_shortwave_radiation_timestep')
       call mark_as_initialized('next_calendar_day_to_perform_shortwave_radiation_for_surface_models')
-      call mark_as_initialized('number_of_wavelength_samples_of_spectrum')
 
       ! Read CAM namelists.
       filein = "atm_in" // trim(inst_suffix)
@@ -253,6 +253,9 @@ CONTAINS
 
       ! Read tropopause climatology
       call tropopause_climo_read_file()
+
+      ! Read gravity wave drag data for ridge parameterization
+      call gravity_wave_drag_ridge_read_file()
 
       ! TEMPORARY:  Prescribe realistic but inaccurate physical quantities
       ! necessary for MUSICA that are currently unavailable in CAM-SIMA.
