@@ -23,6 +23,7 @@ module dyn_comp
     public :: dyn_final
 
     public :: dyn_debug_print
+    public :: advected_constituent_index
     public :: kind_dyn_mpas, mpas_dynamical_core
 
     ! NOTE:
@@ -48,7 +49,7 @@ module dyn_comp
         module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
             use runtime_obj, only: runtime_options
             implicit none
-            type(runtime_options), intent(in) :: cam_runtime_opts
+            type(runtime_options), intent(inout) :: cam_runtime_opts
             type(dyn_import_t), intent(in) :: dyn_in
             type(dyn_export_t), intent(in) :: dyn_out
         end subroutine dyn_init
@@ -68,6 +69,12 @@ module dyn_comp
             integer, optional, intent(in) :: printer
         end subroutine dyn_debug_print
     end interface
+
+    !> CAM-SIMA holds information about all constituents. However, MPAS dynamical core only knows about the advected ones.
+    !> This array contains the indexes of constituents advected by MPAS dynamical core. For example, if CAM-SIMA has
+    !> 5 constituents in total, and MPAS dynamical core only advects the 1st, 3rd, and 4th ones, then this array
+    !> will be [1, 3, 4].
+    integer, allocatable, protected :: advected_constituent_index(:)
 
     !> The "instance/object" of MPAS dynamical core.
     type(mpas_dynamical_core_type) :: mpas_dynamical_core

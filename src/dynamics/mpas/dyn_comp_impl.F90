@@ -128,7 +128,9 @@ contains
     module subroutine dyn_init(cam_runtime_opts, dyn_in, dyn_out)
         ! Module(s) from CAM-SIMA.
         use cam_abortutils, only: check_allocate
-        use cam_constituents, only: const_name, const_is_water_species, num_advected, readtrace
+        use cam_constituents, only: const_name, const_is_water_species, &
+                                    num_advected, &
+                                    readtrace
         use cam_control_mod, only: initial_run
         use cam_initfiles, only: initial_file_get_id, topo_file_get_id
         use cam_logfile, only: debugout_debug, debugout_info
@@ -144,7 +146,7 @@ contains
         ! Module(s) from external libraries.
         use pio, only: file_desc_t
 
-        type(runtime_options), intent(in) :: cam_runtime_opts
+        type(runtime_options), intent(inout) :: cam_runtime_opts
         type(dyn_import_t), intent(in) :: dyn_in
         type(dyn_export_t), intent(in) :: dyn_out
 
@@ -163,6 +165,11 @@ contains
         nullify(pio_init_file)
         nullify(pio_topo_file)
 
+        call dyn_debug_print(debugout_info, 'Inquiring index mapping for advected constituents')
+
+        ! Populate the `advected_constituent_index` lookup table.
+        call dyn_inquire_advected_constituent_index()
+
         allocate(constituent_name(num_advected), errmsg=cerr, stat=ierr)
         call check_allocate(ierr, subname, 'constituent_name(num_advected)', &
             file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
@@ -172,8 +179,8 @@ contains
             file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
         do i = 1, num_advected
-            constituent_name(i) = const_name(i)
-            is_water_species(i) = const_is_water_species(i)
+            constituent_name(i) = const_name(advected_constituent_index(i))
+            is_water_species(i) = const_is_water_species(advected_constituent_index(i))
         end do
 
         call dyn_debug_print(debugout_info, 'Defining MPAS scalars and scalar tendencies')
@@ -183,6 +190,9 @@ contains
 
         deallocate(constituent_name)
         deallocate(is_water_species)
+
+        ! Set dycore name in runtime object.
+        call cam_runtime_opts % set_dycore('mpas')
 
         call set_thermodynamic_active_species_mapping()
         call set_thermodynamic_energy_formula()
@@ -245,6 +255,50 @@ contains
 
         call dyn_debug_print(debugout_debug, subname // ' completed')
     end subroutine dyn_init
+
+    !> CAM-SIMA holds information about all constituents. However, MPAS dynamical core only knows about the advected ones.
+    !> Inquire the index mapping for constituents advected by MPAS dynamical core. Save it as the `advected_constituent_index`
+    !> lookup table, which serves as the authoritative source for mapping an index within the set of advected constituents to
+    !> an index within the set of all constituents.
+    !> (KCW, 2026-03-25)
+    subroutine dyn_inquire_advected_constituent_index()
+        ! Module(s) from CAM-SIMA.
+        use cam_abortutils, only: check_allocate
+        use cam_constituents, only: const_is_advected, &
+                                    num_constituents, num_advected
+        use cam_logfile, only: debugout_debug
+        use string_utils, only: stringify
+        ! Module(s) from CESM Share.
+        use shr_kind_mod, only: len_cx => shr_kind_cx
+
+        character(*), parameter :: subname = 'dyn_comp::dyn_inquire_advected_constituent_index'
+        character(len_cx) :: cerr
+        integer :: i, j
+        integer :: ierr
+
+        call dyn_debug_print(debugout_debug, subname // ' entered')
+
+        ! This is a protected module variable.
+        allocate(advected_constituent_index(num_advected), errmsg=cerr, stat=ierr)
+        call check_allocate(ierr, subname, 'advected_constituent_index(num_advected)', &
+            file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
+
+        j = 1
+
+        do i = 1, num_constituents
+            ! Skip non-advected constituents.
+            if (const_is_advected(i)) then
+                advected_constituent_index(j) = i
+
+                j = j + 1
+            end if
+        end do
+
+        call dyn_debug_print(debugout_debug, 'advected_constituent_index = [' // &
+            stringify(advected_constituent_index) // ']')
+
+        call dyn_debug_print(debugout_debug, subname // ' completed')
+    end subroutine dyn_inquire_advected_constituent_index
 
     !> Inform CAM-SIMA about the index mapping between MPAS scalars and CAM-SIMA constituents.
     !> (KCW, 2025-07-17)
@@ -628,7 +682,6 @@ contains
             character(len_cx) :: cerr
             integer :: i, j
             integer :: ierr
-            integer, allocatable :: constituent_index(:)
             integer, pointer :: index_qv
             real(kind_dyn_mpas), pointer :: scalars(:, :, :)
 
@@ -641,25 +694,23 @@ contains
             call check_allocate(ierr, subname, 'buffer_3d_real(ncells_solve, pver, num_advected)', &
                 file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
 
-            allocate(constituent_index(num_advected), errmsg=cerr, stat=ierr)
-            call check_allocate(ierr, subname, 'constituent_index(num_advected)', &
-                file='dyn_comp', line=__LINE__, errmsg=trim(adjustl(cerr)))
-
             call mpas_dynamical_core % get_variable_pointer(index_qv, 'dim', 'index_qv')
             call mpas_dynamical_core % get_variable_pointer(scalars, 'state', 'scalars', time_level=1)
 
             buffer_3d_real(:, :, :) = 0.0_kind_r8
-            constituent_index(:) = [(i, i = 1, num_advected)]
 
             call dyn_set_inic_col(vc_height, lat_rad, lon_rad, global_grid_index, zint=z_int, q=buffer_3d_real, &
-                m_cnst=constituent_index)
+                m_cnst=advected_constituent_index)
 
             do i = 1, ncells_solve
                 ! `j` is indexing into `scalars`, so it is regarded as MPAS scalar index.
                 do j = 1, num_advected
+                    scalars(j, :, i) = &
+                        real(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j)), kind_dyn_mpas)
+
                     ! Vertical index order is reversed between CAM-SIMA and MPAS.
                     scalars(j, :, i) = &
-                        real(reverse(buffer_3d_real(i, :, mpas_dynamical_core % map_constituent_index(j))), kind_dyn_mpas)
+                        reverse(scalars(j, :, i))
                 end do
             end do
 
@@ -677,7 +728,6 @@ contains
             end if
 
             deallocate(buffer_3d_real)
-            deallocate(constituent_index)
 
             nullify(index_qv)
             nullify(scalars)
@@ -910,7 +960,8 @@ contains
     !> (KCW, 2024-05-23)
     subroutine mark_variables_as_initialized()
         ! Module(s) from CAM-SIMA.
-        use cam_constituents, only: const_name, num_advected
+        use cam_constituents, only: const_name, &
+                                    num_advected
         use cam_logfile, only: debugout_debug
         ! Module(s) from CCPP.
         use phys_vars_init_check, only: mark_as_initialized
@@ -958,7 +1009,7 @@ contains
 
         ! CCPP standard names of constituents.
         do i = 1, num_advected
-            call mark_as_initialized(trim(adjustl(const_name(i))))
+            call mark_as_initialized(trim(adjustl(const_name(advected_constituent_index(i)))))
         end do
 
         ! The variables below are not managed by dynamics interface. They are used by external CCPP physics schemes.

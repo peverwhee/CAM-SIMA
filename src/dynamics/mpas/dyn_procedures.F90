@@ -33,6 +33,11 @@ module dyn_procedures
         module procedure exner_function_of_cpd_p0_rd_p
         module procedure exner_function_of_kappa_p0_p
     end interface exner_function
+
+    interface reverse
+        module procedure reverse_real32
+        module procedure reverse_real64
+    end interface reverse
 contains
     !> Compute the pressure `p` from the density `rho` and the temperature `t` by equation of state. Essentially,
     !> \( P = \rho R T \). Equation of state may take other forms, such as \( P_d = \rho_d R_d T \), \( P = \rho R_d T_v \),
@@ -74,6 +79,7 @@ contains
     end function t_by_equation_of_state
 
     !> Compute the Exner function `pi` from the pressure `p`. Essentially, \( \Pi = (\frac{P}{P_0})^{\frac{R_d}{C_{pd}}} \).
+    !> (KCW, 2025-07-10)
     pure elemental function exner_function_of_cpd_p0_rd_p(constant_cpd, constant_p0, constant_rd, p) result(pi)
         use, intrinsic :: iso_fortran_env, only: real64
 
@@ -84,6 +90,7 @@ contains
     end function exner_function_of_cpd_p0_rd_p
 
     !> Compute the Exner function `pi` from the pressure `p`. Essentially, \( \Pi = (\frac{P}{P_0})^{\kappa} \).
+    !> (KCW, 2025-08-16)
     pure elemental function exner_function_of_kappa_p0_p(constant_kappa, constant_p0, p) result(pi)
         use, intrinsic :: iso_fortran_env, only: real64
 
@@ -340,9 +347,29 @@ contains
         tv = tm / (1.0_real64 + qv)
     end function tv_of_tm_qv
 
-    !> Reverse the order of elements in `array`.
+    !> Reverse the order of elements in `array`. Single precision variant.
     !> (KCW, 2024-07-17)
-    pure function reverse(array)
+    pure function reverse_real32(array) result(reverse)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: array(:)
+        real(real32) :: reverse(size(array))
+
+        integer :: n
+
+        n = size(array)
+
+        ! There is nothing to reverse.
+        if (n == 0) then
+            return
+        end if
+
+        reverse(:) = array(n:1:-1)
+    end function reverse_real32
+
+    !> Reverse the order of elements in `array`. Double precision variant.
+    !> (KCW, 2024-07-17)
+    pure function reverse_real64(array) result(reverse)
         use, intrinsic :: iso_fortran_env, only: real64
 
         real(real64), intent(in) :: array(:)
@@ -358,7 +385,7 @@ contains
         end if
 
         reverse(:) = array(n:1:-1)
-    end function reverse
+    end function reverse_real64
 
     !> Convert second(s) to hour(s), minute(s), and second(s).
     !> (KCW, 2024-02-07)

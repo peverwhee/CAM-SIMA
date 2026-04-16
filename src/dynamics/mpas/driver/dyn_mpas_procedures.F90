@@ -15,13 +15,35 @@ module dyn_mpas_procedures
 
     private
     ! Computational procedures.
-    ! None in this group for now.
+    public :: dzw_of_rdzw, dzu_of_dzw, zu_of_dzw, zw_of_dzw
     ! Utility procedures.
     public :: almost_divisible
     public :: almost_equal
     public :: clamp
     public :: index_unique
+    public :: split
     public :: stringify
+    public :: tokenize
+
+    interface dzw_of_rdzw
+        module procedure dzw_of_rdzw_real32
+        module procedure dzw_of_rdzw_real64
+    end interface dzw_of_rdzw
+
+    interface dzu_of_dzw
+        module procedure dzu_of_dzw_real32
+        module procedure dzu_of_dzw_real64
+    end interface dzu_of_dzw
+
+    interface zu_of_dzw
+        module procedure zu_of_dzw_real32
+        module procedure zu_of_dzw_real64
+    end interface zu_of_dzw
+
+    interface zw_of_dzw
+        module procedure zw_of_dzw_real32
+        module procedure zw_of_dzw_real64
+    end interface zw_of_dzw
 
     interface almost_divisible
         module procedure almost_divisible_real32
@@ -39,7 +61,144 @@ module dyn_mpas_procedures
         module procedure clamp_real32
         module procedure clamp_real64
     end interface clamp
+
+    interface tokenize
+        module procedure tokenize_into_first_last
+        module procedure tokenize_into_tokens_separator
+    end interface tokenize
 contains
+    !> Compute the differences in \( \zeta \) between w-wind levels `dzw` from the reciprocal differences in \( \zeta \) between
+    !> w-wind levels `rdzw`, where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces
+    !> in MPAS.
+    !> (KCW, 2025-10-20)
+    pure elemental function dzw_of_rdzw_real32(rdzw) result(dzw)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: rdzw
+        real(real32) :: dzw
+
+        dzw = 1.0_real32 / rdzw
+    end function dzw_of_rdzw_real32
+
+    !> Compute the differences in \( \zeta \) between w-wind levels `dzw` from the reciprocal differences in \( \zeta \) between
+    !> w-wind levels `rdzw`, where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces
+    !> in MPAS.
+    !> (KCW, 2025-10-20)
+    pure elemental function dzw_of_rdzw_real64(rdzw) result(dzw)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: rdzw
+        real(real64) :: dzw
+
+        dzw = 1.0_real64 / rdzw
+    end function dzw_of_rdzw_real64
+
+    !> Compute the differences in \( \zeta \) between u-wind levels `dzu` from the differences in \( \zeta \) between
+    !> w-wind levels `dzw`, where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with
+    !> layer midpoints and interfaces in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function dzu_of_dzw_real32(dzw) result(dzu)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: dzw(:)
+        real(real32) :: dzu(size(dzw) - 1)
+
+        integer :: k
+
+        do k = 1, size(dzu)
+            dzu(k) = 0.5_real32 * (dzw(k) + dzw(k + 1))
+        end do
+    end function dzu_of_dzw_real32
+
+    !> Compute the differences in \( \zeta \) between u-wind levels `dzu` from the differences in \( \zeta \) between
+    !> w-wind levels `dzw`, where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with
+    !> layer midpoints and interfaces in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function dzu_of_dzw_real64(dzw) result(dzu)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: dzw(:)
+        real(real64) :: dzu(size(dzw) - 1)
+
+        integer :: k
+
+        do k = 1, size(dzu)
+            dzu(k) = 0.5_real64 * (dzw(k) + dzw(k + 1))
+        end do
+    end function dzu_of_dzw_real64
+
+    !> Compute the \( \zeta \) coordinates at u-wind levels `zu` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with layer midpoints and interfaces
+    !> in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function zu_of_dzw_real32(dzw) result(zu)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: dzw(:)
+        real(real32) :: zu(size(dzw))
+
+        integer :: k
+        real(real32) :: zw(size(dzw) + 1)
+
+        zw(:) = zw_of_dzw(dzw)
+
+        do k = 1, size(zu)
+            zu(k) = 0.5_real32 * (zw(k) + zw(k + 1))
+        end do
+    end function zu_of_dzw_real32
+
+    !> Compute the \( \zeta \) coordinates at u-wind levels `zu` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, u-wind and w-wind levels are synonymous with layer midpoints and interfaces
+    !> in MPAS, respectively.
+    !> (KCW, 2025-10-20)
+    pure function zu_of_dzw_real64(dzw) result(zu)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: dzw(:)
+        real(real64) :: zu(size(dzw))
+
+        integer :: k
+        real(real64) :: zw(size(dzw) + 1)
+
+        zw(:) = zw_of_dzw(dzw)
+
+        do k = 1, size(zu)
+            zu(k) = 0.5_real64 * (zw(k) + zw(k + 1))
+        end do
+    end function zu_of_dzw_real64
+
+    !> Compute the \( \zeta \) coordinates at w-wind levels `zw` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces in MPAS.
+    !> (KCW, 2025-10-20)
+    pure function zw_of_dzw_real32(dzw) result(zw)
+        use, intrinsic :: iso_fortran_env, only: real32
+
+        real(real32), intent(in) :: dzw(:)
+        real(real32) :: zw(size(dzw) + 1)
+
+        integer :: k
+
+        do k = 1, size(zw)
+            zw(k) = sum(dzw(1:k - 1))
+        end do
+    end function zw_of_dzw_real32
+
+    !> Compute the \( \zeta \) coordinates at w-wind levels `zw` from the differences in \( \zeta \) between w-wind levels `dzw`,
+    !> where \( \zeta \) is the vertical coordinate, and w-wind levels are synonymous with layer interfaces in MPAS.
+    !> (KCW, 2025-10-20)
+    pure function zw_of_dzw_real64(dzw) result(zw)
+        use, intrinsic :: iso_fortran_env, only: real64
+
+        real(real64), intent(in) :: dzw(:)
+        real(real64) :: zw(size(dzw) + 1)
+
+        integer :: k
+
+        do k = 1, size(zw)
+            zw(k) = sum(dzw(1:k - 1))
+        end do
+    end function zw_of_dzw_real64
+
     !> Test if `a` is divisible by `b`, where `a` and `b` are both reals.
     !> (KCW, 2024-05-25)
     pure elemental function almost_divisible_real32(a, b) result(almost_divisible)
@@ -297,6 +456,47 @@ contains
         index_unique = pack([(i, i = 1, n)], mask_unique)
     end function index_unique
 
+    !> Parse a string into tokens, one at a time. Each character in `set` is a token delimiter.
+    !> If `back` is absent or is present with the value `.false.`, `pos` is assigned the position of the leftmost
+    !> token delimiter in `string` whose position is greater than `pos`, or if there is no such character, it
+    !> is assigned a value one greater than the length of `string`. This identifies a token with starting
+    !> position one greater than the value of `pos` on invocation, and ending position one less than the
+    !> value of `pos` on return.
+    !> If `back` is present with the value `.true.`, `pos` is assigned the position of the rightmost token delimiter
+    !> in `string` whose position is less than `pos`, or if there is no such character, it is assigned the value
+    !> zero. This identifies a token with ending position one less than the value of `pos` on invocation, and
+    !> starting position one greater than the value of `pos` on return.
+    !> This subroutine implements the `split` intrinsic procedure as defined in the Fortran 2023 language standard
+    !> (Section 16.9.196). We implement it ourselves because the compiler support may take years to become widespread.
+    !> (KCW, 2025-10-29)
+    pure subroutine split(string, set, pos, back)
+        character(*), intent(in) :: string, set
+        integer, intent(inout) :: pos
+        logical, optional, intent(in) :: back
+
+        integer :: offset
+
+        if (present(back)) then
+            if (back) then
+                offset = clamp(pos, 1, len(string) + 1)
+                pos = scan(string(1:offset - 1), set, back=.true.)
+
+                return
+            end if
+        end if
+
+        offset = clamp(pos, 0, len(string))
+        pos = scan(string(offset + 1:), set)
+
+        if (pos == 0) then
+            pos = len(string) + 1
+
+            return
+        end if
+
+        pos = offset + pos
+    end subroutine split
+
     !> Convert one or more values of any intrinsic data types to a character string for pretty printing.
     !> If `value` contains more than one element, the elements will be stringified, delimited by `separator`, then concatenated.
     !> If `value` contains exactly one element, the element will be stringified without using `separator`.
@@ -407,4 +607,73 @@ contains
 
         stringify = trim(buffer)
     end function stringify
+
+    !> Parse a string into tokens. Each character in `set` is a token delimiter.
+    !> `first` is allocated with the lower bound equal to one and the upper bound equal to the number of tokens in `string`.
+    !> Each element is assigned, in array element order, the starting position of each token in `string`, in the order found.
+    !> `last` is allocated with the lower bound equal to one and the upper bound equal to the number of tokens in `string`.
+    !> Each element is assigned, in array element order, the ending position of each token in `string`, in the order found.
+    !> This subroutine implements the `tokenize` intrinsic procedure as defined in the Fortran 2023 language standard
+    !> (Section 16.9.210). We implement it ourselves because the compiler support may take years to become widespread.
+    !> (KCW, 2025-10-29)
+    pure subroutine tokenize_into_first_last(string, set, first, last)
+        character(*), intent(in) :: string, set
+        integer, allocatable, intent(out) :: first(:), last(:)
+
+        integer :: pos_start(len(string) + 1), pos_end(len(string) + 1)
+        integer :: l, n, pos
+
+        l = len(string)
+        n = 0
+        pos = 0
+
+        do while (pos < l + 1)
+            n = n + 1
+            pos_start(n) = pos + 1
+
+            call split(string, set, pos)
+
+            pos_end(n) = pos - 1
+        end do
+
+        allocate(first(n), last(n))
+
+        first(:) = pos_start(1:n)
+        last(:) = pos_end(1:n)
+    end subroutine tokenize_into_first_last
+
+    !> Parse a string into tokens. Each character in `set` is a token delimiter.
+    !> `tokens` is allocated with the lower bound equal to one and the upper bound equal to the number of tokens in `string`,
+    !> and with character length equal to the length of the longest token. It contains the tokens in `string`.
+    !> `separator` is allocated with the lower bound equal to one and the upper bound equal to one less than the number of
+    !> tokens in `string`, and with character length equal to one. It contains the token delimiters in `string`.
+    !> This subroutine implements the `tokenize` intrinsic procedure as defined in the Fortran 2023 language standard
+    !> (Section 16.9.210). We implement it ourselves because the compiler support may take years to become widespread.
+    !> (KCW, 2025-10-29)
+    pure subroutine tokenize_into_tokens_separator(string, set, tokens, separator)
+        character(*), intent(in) :: string, set
+        character(:), allocatable, intent(out) :: tokens(:)
+        character(:), allocatable, optional, intent(out) :: separator(:)
+
+        integer, allocatable :: first(:), last(:)
+        integer :: i, n
+
+        call tokenize(string, set, first, last)
+
+        n = size(first)
+
+        allocate(character(maxval(last - first) + 1) :: tokens(n))
+
+        do i = 1, n
+            tokens(i) = string(first(i):last(i))
+        end do
+
+        if (present(separator)) then
+            allocate(character(1) :: separator(n - 1))
+
+            do i = 1, n - 1
+                separator(i) = string(last(i) + 1:last(i) + 1)
+            end do
+        end if
+    end subroutine tokenize_into_tokens_separator
 end module dyn_mpas_procedures

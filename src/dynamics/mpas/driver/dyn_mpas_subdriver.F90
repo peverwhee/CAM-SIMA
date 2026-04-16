@@ -1669,60 +1669,27 @@ contains
     !> (KCW, 2024-06-01)
     pure function parse_stream_name(stream_name) result(var_info_list)
         ! Module(s) from MPAS.
-        use dyn_mpas_procedures, only: index_unique
+        use dyn_mpas_procedures, only: index_unique, tokenize
 
         character(*), intent(in) :: stream_name
         type(var_info_type), allocatable :: var_info_list(:)
 
         character(*), parameter :: supported_stream_name_operator = '+-'
-        character(1) :: stream_name_operator
-        character(:), allocatable :: stream_name_fragment
+        character(:), allocatable :: stream_name_fragment(:), stream_name_operator(:)
         character(len(invariant_var_info_list % name)), allocatable :: var_name_list(:)
-        integer :: i, j, n, offset
+        integer :: i, j
         type(var_info_type), allocatable :: var_info_list_buffer(:)
 
-        n = len_trim(stream_name)
+        call tokenize(stream_name, supported_stream_name_operator, stream_name_fragment, stream_name_operator)
 
-        if (n == 0) then
-            ! Empty character string means empty list.
-            var_info_list = parse_stream_name_fragment('')
+        var_info_list = parse_stream_name_fragment(stream_name_fragment(1))
 
-            return
-        end if
-
-        i = scan(stream_name, supported_stream_name_operator)
-
-        if (i == 0) then
-            ! No operators are present in the stream name. It is just a single stream name fragment.
-            stream_name_fragment = stream_name
-            var_info_list = parse_stream_name_fragment(stream_name_fragment)
-
-            return
-        end if
-
-        offset = 0
-        var_info_list = parse_stream_name_fragment('')
-
-        do while (.true.)
-            ! Extract operator from the stream name.
-            if (offset > 0) then
-                stream_name_operator = stream_name(offset:offset)
-            else
-                stream_name_operator = '+'
-            end if
-
-            ! Extract stream name fragment from the stream name.
-            if (i > 1) then
-                stream_name_fragment = stream_name(offset + 1:offset + i - 1)
-            else
-                stream_name_fragment = ''
-            end if
-
+        do i = 2, size(stream_name_fragment)
             ! Process the stream name fragment according to the operator.
-            if (len_trim(stream_name_fragment) > 0) then
-                var_info_list_buffer = parse_stream_name_fragment(stream_name_fragment)
+            var_info_list_buffer = parse_stream_name_fragment(stream_name_fragment(i))
 
-                select case (stream_name_operator)
+            if (size(var_info_list_buffer) > 0) then
+                select case (stream_name_operator(i - 1))
                     case ('+')
                         var_info_list = [var_info_list, var_info_list_buffer]
                     case ('-')
@@ -1733,20 +1700,6 @@ contains
                     case default
                         ! Do nothing for unknown operators. Should not happen at all.
                 end select
-            end if
-
-            offset = offset + i
-
-            ! Terminate loop when everything in the stream name has been processed.
-            if (offset + 1 > n) then
-                exit
-            end if
-
-            i = scan(stream_name(offset + 1:), supported_stream_name_operator)
-
-            ! Run the loop one last time for the remaining stream name fragment.
-            if (i == 0) then
-                i = n - offset + 1
             end if
         end do
 
@@ -2488,6 +2441,7 @@ contains
         class(mpas_dynamical_core_type), intent(in) :: self
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_compute_unit_vector'
+        real(rkind), parameter :: pi = acos(-1.0_rkind) ! Pi in native precision.
         integer :: i
         integer, pointer :: ncells
         real(rkind), pointer :: latcell(:), loncell(:)
@@ -2513,6 +2467,12 @@ contains
         call self % get_variable_pointer(north, 'mesh', 'north')
 
         call self % debug_print(log_level_info, 'Computing unit vectors')
+
+        ! Make sure longitude values are within the range of [0, 2 * pi) according to MPAS mesh specifications.
+        ! Although stand-alone MPAS can still accept longitude values outside this range without issues, CAM-SIMA is less
+        ! tolerant about it. Note that there is a distinction between the `mod` and `modulo` intrinsic procedures.
+        ! The former uses truncated division, while the latter uses floored division.
+        loncell(:) = modulo(loncell, 2.0_rkind * pi)
 
         do i = 1, ncells
             east(1, i) = -sin(loncell(i))
@@ -3417,7 +3377,7 @@ contains
     subroutine dyn_mpas_get_local_mesh_dimension(self, &
             ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels)
         class(mpas_dynamical_core_type), intent(in) :: self
-        integer, intent(out) :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
+        integer, optional, intent(out) :: ncells, ncells_solve, nedges, nedges_solve, nvertices, nvertices_solve, nvertlevels
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_local_mesh_dimension'
         integer, pointer :: ncells_pointer
@@ -3448,16 +3408,35 @@ contains
         call self % get_variable_pointer(nverticessolve_pointer, 'dim', 'nVerticesSolve')
         call self % get_variable_pointer(nvertlevels_pointer, 'dim', 'nVertLevels')
 
-        ncells = ncells_pointer                  ! Number of cells, including halo cells.
-        ncells_solve = ncellssolve_pointer       ! Number of cells, excluding halo cells.
-        nedges = nedges_pointer                  ! Number of edges, including halo edges.
-        nedges_solve = nedgessolve_pointer       ! Number of edges, excluding halo edges.
-        nvertices = nvertices_pointer            ! Number of vertices, including halo vertices.
-        nvertices_solve = nverticessolve_pointer ! Number of vertices, excluding halo vertices.
+        if (present(ncells)) then
+            ncells = ncells_pointer                  ! Number of cells, including halo cells.
+        end if
+
+        if (present(ncells_solve)) then
+            ncells_solve = ncellssolve_pointer       ! Number of cells, excluding halo cells.
+        end if
+
+        if (present(nedges)) then
+            nedges = nedges_pointer                  ! Number of edges, including halo edges.
+        end if
+
+        if (present(nedges_solve)) then
+            nedges_solve = nedgessolve_pointer       ! Number of edges, excluding halo edges.
+        end if
+
+        if (present(nvertices)) then
+            nvertices = nvertices_pointer            ! Number of vertices, including halo vertices.
+        end if
+
+        if (present(nvertices_solve)) then
+            nvertices_solve = nverticessolve_pointer ! Number of vertices, excluding halo vertices.
+        end if
 
         ! Vertical levels are not decomposed.
         ! All tasks have the same number of vertical levels.
-        nvertlevels = nvertlevels_pointer
+        if (present(nvertlevels)) then
+            nvertlevels = nvertlevels_pointer
+        end if
 
         nullify(ncells_pointer)
         nullify(ncellssolve_pointer)
@@ -3492,8 +3471,8 @@ contains
         use mpas_dmpar, only: mpas_dmpar_max_int, mpas_dmpar_sum_int
 
         class(mpas_dynamical_core_type), intent(in) :: self
-        integer, intent(out) :: ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max
-        real(rkind), intent(out) :: sphere_radius
+        integer, optional, intent(out) :: ncells_global, nedges_global, nvertices_global, nvertlevels, ncells_max, nedges_max
+        real(rkind), optional, intent(out) :: sphere_radius
 
         character(*), parameter :: subname = 'dyn_mpas_subdriver::dyn_mpas_get_global_mesh_dimension'
         integer, pointer :: maxedges_pointer
@@ -3518,18 +3497,35 @@ contains
         call self % get_variable_pointer(nverticessolve_pointer, 'dim', 'nVerticesSolve')
         call self % get_variable_pointer(nvertlevels_pointer, 'dim', 'nVertLevels')
 
-        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, ncellssolve_pointer, ncells_global)
-        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nedgessolve_pointer, nedges_global)
-        call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nverticessolve_pointer, nvertices_global)
+        if (present(ncells_global)) then
+            call mpas_dmpar_sum_int(self % domain_ptr % dminfo, ncellssolve_pointer, ncells_global)
+        end if
+
+        if (present(nedges_global)) then
+            call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nedgessolve_pointer, nedges_global)
+        end if
+
+        if (present(nvertices_global)) then
+            call mpas_dmpar_sum_int(self % domain_ptr % dminfo, nverticessolve_pointer, nvertices_global)
+        end if
 
         ! Vertical levels are not decomposed.
         ! All tasks have the same number of vertical levels.
-        nvertlevels = nvertlevels_pointer
+        if (present(nvertlevels)) then
+            nvertlevels = nvertlevels_pointer
+        end if
 
-        call mpas_dmpar_max_int(self % domain_ptr % dminfo, ncellssolve_pointer, ncells_max)
+        if (present(ncells_max)) then
+            call mpas_dmpar_max_int(self % domain_ptr % dminfo, ncellssolve_pointer, ncells_max)
+        end if
 
-        nedges_max = maxedges_pointer
-        sphere_radius = self % domain_ptr % sphere_radius
+        if (present(nedges_max)) then
+            nedges_max = maxedges_pointer
+        end if
+
+        if (present(sphere_radius)) then
+            sphere_radius = self % domain_ptr % sphere_radius
+        end if
 
         nullify(maxedges_pointer)
         nullify(ncellssolve_pointer)
