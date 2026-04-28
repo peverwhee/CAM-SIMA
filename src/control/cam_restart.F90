@@ -11,6 +11,7 @@ CONTAINS
     use cam_pio_utils,    only: cam_pio_createfile, cam_pio_set_fill
     use restart_dynamics, only: write_restart_dynamics, init_restart_dynamics
     use restart_physics,  only: restart_physics_write, restart_physics_init
+    use cam_history,      only: history_restart_init
     use cam_instance,     only: inst_suffix
     use pio,              only: file_desc_t, io_desc_t, pio_double, pio_global
     use pio,              only: pio_put_att, pio_enddef, pio_closefile
@@ -63,7 +64,7 @@ CONTAINS
     if (errflg /= 0) then
        call endrun(errmsg)
     end if
-    !call init_restart_history(fh)
+    call history_restart_init()
 
     ierr = pio_put_att(fh, pio_global, 'caseid', caseid)
     ierr = pio_enddef(fh)

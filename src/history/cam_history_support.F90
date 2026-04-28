@@ -17,13 +17,13 @@ module cam_history_support
    integer, parameter, public :: fieldname_len = 32              ! max chars for field name
    integer, parameter, public :: fieldname_suffix_len =  3       ! length of field name suffix ("&IC")
    ! max_fieldname_len = max chars for field name (including suffix)
-   integer, parameter, public :: max_fieldname_len    = fieldname_len + fieldname_suffix_len
+   integer, parameter, public :: max_fieldname_len = fieldname_len + fieldname_suffix_len
    ! default fill value for history NetCDF fields
    real(r8), parameter, public :: hist_default_fillvalue = 1.e36_r8
-   integer,  parameter, public :: pfiles = 12        ! max number of tapes
+   integer,  parameter, public :: pfiles = 12             ! max number of history configurations
    integer, parameter, public :: max_chars = shr_kind_cl  ! max chars for char variables
    integer, parameter, public :: max_string_len = shr_kind_cxx
-   real(r8), parameter, public :: fillvalue = 1.e36_r8     ! fill value for netcdf fields
+   real(r8), parameter, public :: fillvalue = 1.e36_r8    ! default fill value for netcdf fields
    ! A special symbol for declaring a field which has no vertical or
    ! non-grid dimensions. It is here (rather than cam_history) so that it
    ! can be checked by add_hist_coord

@@ -1691,7 +1691,8 @@ CONTAINS
    ! ========================================================================
 
    subroutine read_namelist_entry(unitn, hfile_config, hist_inst_fields,      &
-        hist_avg_fields, hist_min_fields, hist_max_fields, hist_var_fields)
+        hist_avg_fields, hist_min_fields, hist_max_fields, hist_var_fields,   &
+        num_fields)
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER, MPI_LOGICAL
       use string_utils,   only: stringify
       use spmd_utils,     only: masterproc, masterprocid, mpicom
@@ -1713,6 +1714,7 @@ CONTAINS
       character(len=max_fldlen), allocatable, intent(inout) :: hist_min_fields(:)
       character(len=max_fldlen), allocatable, intent(inout) :: hist_max_fields(:)
       character(len=max_fldlen), allocatable, intent(inout) :: hist_var_fields(:)
+      integer,           intent(out)   :: num_fields
       ! Local variables (namelist)
       character(len=vlen) :: hist_volume
       character(len=vlen) :: hist_precision
@@ -1869,6 +1871,8 @@ CONTAINS
            interp_nlat=hist_interp_nlat, interp_nlon=hist_interp_nlon,        &
            interp_grid=hist_interp_grid, interp_type=hist_interp_type)
       call hfile_config%print_config()
+      num_fields = num_fields_inst + num_fields_avg + num_fields_min + &
+              num_fields_max + num_fields_var
 
    end subroutine read_namelist_entry
 
@@ -1975,7 +1979,7 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine hist_read_namelist_config(filename, config_arr)
+   subroutine hist_read_namelist_config(filename, config_arr, max_fields)
       use mpi,            only: MPI_CHARACTER, MPI_INTEGER
       use shr_kind_mod,   only: max_str =>SHR_KIND_CXX, CM => shr_kind_cm
       use shr_nl_mod,     only: shr_nl_find_group_name
@@ -1989,6 +1993,7 @@ CONTAINS
       ! Dummy arguments
       character(len=*), intent(in) :: filename
       type(hist_file_t), allocatable, intent(inout) :: config_arr(:)
+      integer, intent(out) :: max_fields
       ! Local variables
       integer                                :: unitn
       integer                                :: read_status
@@ -1996,6 +2001,7 @@ CONTAINS
       integer                                :: line_num
       integer                                :: lindex
       integer                                :: num_configs
+      integer                                :: num_fields
       logical                                :: filefound
       character(len=max_fldlen), allocatable :: hist_inst_fields(:)
       character(len=max_fldlen), allocatable :: hist_avg_fields(:)
@@ -2010,6 +2016,7 @@ CONTAINS
       ! Variables for reading a namelist entry
       unitn = -1 ! Prevent reads on error or wrong tasks
       ierr = 0
+      max_fields = 0
 
       errmsg = ''
       if (masterproc) then
@@ -2084,7 +2091,10 @@ CONTAINS
          end if
          call read_namelist_entry(unitn, config_arr(lindex),                  &
               hist_inst_fields, hist_avg_fields, hist_min_fields,             &
-              hist_max_fields, hist_var_fields)
+              hist_max_fields, hist_var_fields, num_fields)
+         if (num_fields > max_fields) then
+            max_fields = num_fields
+         end if
       end do
       !
       ! Cleanup

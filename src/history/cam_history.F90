@@ -13,6 +13,7 @@ module cam_history
    use cam_hist_file,        only: hist_file_t
    use hist_field,           only: hist_field_info_t
    use hist_hash_table,      only: hist_hash_table_t
+   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -31,6 +32,7 @@ module cam_history
    public :: history_add_field      ! Write to list of possible history fields for this run
    public :: history_out_field      ! Accumulate field if its in use by one or more tapes
    public :: history_wrap_up        ! Process history files at end of timestep or run
+   public :: history_restart_init   ! Initialize restart files, if necessary
 
    interface history_out_field
       module procedure history_out_field_1d
@@ -48,6 +50,8 @@ module cam_history
    type(hist_field_info_t), pointer :: possible_field_list_head
    type(hist_hash_table_t)          :: possible_field_list
    integer                          :: num_possible_fields
+   logical,           allocatable   :: just_wrote(:)
+   integer                          :: max_num_fields
 
 CONTAINS
 
@@ -57,13 +61,23 @@ CONTAINS
       ! Purpose: Read in history namelist and set hist_configs
       !
       !-----------------------------------------------------------------------
-      use cam_hist_file, only: hist_read_namelist_config
+      use cam_hist_file,  only: hist_read_namelist_config
+      use cam_abortutils, only: endrun
 
       ! Dummy argument
       character(len=*), intent(in) :: nlfile ! path of namelist input file
+      integer :: ierr
+      character(len=256) :: alloc_errmsg
+      character(len=512) :: errmsg
 
       ! Read in CAM history configuration
-      call hist_read_namelist_config(nlfile, hist_configs)
+      call hist_read_namelist_config(nlfile, hist_configs, max_num_fields)
+      allocate(just_wrote(size(hist_configs)), stat=ierr, errmsg=alloc_errmsg)
+      if (ierr /= 0) then
+         write(errmsg,*) 'history_readnl: failed to allocate hist_configs; errmsg = ', alloc_errmsg
+         call endrun(errmsg)
+      end if
+      just_wrote = .false.
 
    end subroutine history_readnl
 
@@ -110,6 +124,8 @@ CONTAINS
 
       ! peverwhee - TODO: remove when restarts are implemented
       restart = .false.
+
+      just_wrote = .false.
 
       ! Loop over history volumes
       do file_idx = 1, size(hist_configs)
@@ -211,6 +227,7 @@ CONTAINS
             call hist_configs(file_idx)%define_file(restart, logname, host, model_doi_url)
          end if
          call hist_configs(file_idx)%write_time_dependent_variables(restart)
+         just_wrote(file_idx) = .true.
       end do
 
    end subroutine history_write_files
@@ -849,6 +866,18 @@ CONTAINS
 9004  format('---------------------------------------')
 
    end subroutine history_wrap_up
+
+!#######################################################################
+
+   subroutine history_restart_init()
+      use cam_hist_restart_file, only: set_restart_variable_names, set_restart_dimension_names
+      ! Local variables
+      write(iulog,*) 'peverwhee - which have we just written'
+      write(iulog,*) just_wrote
+      write(iulog,*) max_num_fields
+      call set_restart_variable_names()
+      call set_restart_dimension_names(size(hist_configs), max_num_fields)
+   end subroutine history_restart_init
 
 !#######################################################################
 
