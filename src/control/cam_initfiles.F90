@@ -68,12 +68,13 @@ CONTAINS
 
    subroutine cam_initfiles_readnl(nlfile)
 
-      use shr_nl_mod,   only: find_group_name => shr_nl_find_group_name
-      use spmd_utils,   only: mpicom, mstrid=>masterprocid
-      use mpi,          only: mpi_character, mpi_logical, mpi_real8
-      use pio,          only: pio_offset_kind
-      use ioFileMod,    only: cam_get_file, cam_open_file
-      use cam_instance, only: inst_suffix
+      use shr_nl_mod,    only: find_group_name => shr_nl_find_group_name
+      use spmd_utils,    only: mpicom, mstrid=>masterprocid
+      use mpi,           only: mpi_character, mpi_logical, mpi_real8
+      use pio,           only: pio_offset_kind
+      use ioFileMod,     only: cam_get_file, cam_open_file
+      use cam_instance,  only: inst_suffix
+      use cam_filenames, only: interpret_filename_spec
 
       ! nlfile: filepath for file containing namelist input
       character(len=*), intent(in) :: nlfile
@@ -136,24 +137,22 @@ CONTAINS
          ! Read name of restart file from pointer file
          if (masterproc) then
             rest_pfile = interpret_filename_spec("rpointer.cam"//trim(inst_suffix)//".%y-%m-%d-%s", prev=.true.)
-            inquire(file=trim(rest_pfile),exist=found)
-            if(.not. found) then
+            inquire(file=trim(rest_pfile),exist=filefound)
+            if(.not. filefound) then
                write(iulog, "INFO : rpointer file "//trim(rest_pfile)//" not found.")
                rest_pfile = "rpointer.cam"//trim(inst_suffix)
                write(iulog, "  Try looking for "//trim(rest_pfile)//" ...")
-               inquire(file=trim(rest_pfile),exist=found)
-               if(.not. found) then
-                  call endrun(sub // ': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
+               inquire(file=trim(rest_pfile),exist=filefound)
+               if(.not. filefound) then
+                  call endrun(subname // ': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
                endif
             endif
-            unitn = getunit()
-            call opnfil(rest_pfile, unitn, 'f', status="old")
+            open(newunit=unitn, file=trim(rest_pfile), status='old', iostat=ierr)
             read (unitn, '(a)', iostat=ierr) restart_file
             if (ierr /= 0) then
-               call endrun(sub // ': ERROR: reading rpointer file: '//trim(rest_pfile))
+               call endrun(subname // ': ERROR: reading rpointer file: '//trim(rest_pfile))
             end if
             close(unitn)
-            call freeunit(unitn)
          end if
 
          call mpi_bcast(restart_file, len(restart_file), mpi_character,       &
