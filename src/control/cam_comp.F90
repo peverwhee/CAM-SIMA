@@ -88,7 +88,7 @@ CONTAINS
       use phys_comp,                 only: phys_init, phys_suite_name
       use phys_comp,                 only: phys_register
       use dyn_comp,                  only: dyn_init
-!      use cam_restart,               only: cam_read_restart
+      use cam_restart,               only: cam_read_restart
       use cam_history,               only: history_init_files
 !      use history_scam,              only: scm_intht
       use cam_pio_utils,             only: init_pio_subsystem
@@ -239,10 +239,7 @@ CONTAINS
 
       else
 
-!!XXgoldyXX: v need to import this
-!         call cam_read_restart(cam_in, cam_out, dyn_in, dyn_out,              &
-!              stop_ymd, stop_tod)
-!!XXgoldyXX: ^ need to import this
+         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
 
 !!XXgoldyXX: v need to import this
 !         if (BFB_CAM_SCAM_IOP) then

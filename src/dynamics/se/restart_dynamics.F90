@@ -19,7 +19,7 @@ save
 
 public :: init_restart_dynamics
 public :: write_restart_dynamics
-!public :: read_restart_dynamics
+public :: read_restart_dynamics
 
 ! these variables are module data so they can be shared between the
 ! file definition and write phases
@@ -497,6 +497,14 @@ end subroutine write_unstruct
 end subroutine write_restart_dynamics
 
 !=========================================================================================
+
+subroutine read_restart_dynamics(restart_file, dyn_in, dyn_out)
+   use dyn_comp, only: dyn_import_t, dyn_export_t
+   use pio,      only: file_desc_t
+   type(file_desc_t),  intent(in)    :: restart_file
+   type(dyn_import_t), intent(inout) :: dyn_in
+   type(dyn_export_t), intent(inout) :: dyn_out
+end subroutine read_restart_dynamics
 
 !=========================================================================================
 ! Private

@@ -129,18 +129,31 @@ CONTAINS
       end if
 
       ! Set pointer file name based on instance suffix
-      rest_pfile = './rpointer.atm' //trim(inst_suffix)
+      rest_pfile = './rpointer.cam' //trim(inst_suffix)
 
       ! Set name of primary restart file
       if (restart_run) then
          ! Read name of restart file from pointer file
          if (masterproc) then
-            call cam_open_file(rest_pfile, unitn, 'f', status="old")
+            rest_pfile = interpret_filename_spec("rpointer.cam"//trim(inst_suffix)//".%y-%m-%d-%s", prev=.true.)
+            inquire(file=trim(rest_pfile),exist=found)
+            if(.not. found) then
+               write(iulog, "INFO : rpointer file "//trim(rest_pfile)//" not found.")
+               rest_pfile = "rpointer.cam"//trim(inst_suffix)
+               write(iulog, "  Try looking for "//trim(rest_pfile)//" ...")
+               inquire(file=trim(rest_pfile),exist=found)
+               if(.not. found) then
+                  call endrun(sub // ': ERROR: rpointer file: '//trim(rest_pfile) // ' not found')
+               endif
+            endif
+            unitn = getunit()
+            call opnfil(rest_pfile, unitn, 'f', status="old")
             read (unitn, '(a)', iostat=ierr) restart_file
             if (ierr /= 0) then
-               call endrun(subname//': ERROR: reading rpointer file')
+               call endrun(sub // ': ERROR: reading rpointer file: '//trim(rest_pfile))
             end if
             close(unitn)
+            call freeunit(unitn)
          end if
 
          call mpi_bcast(restart_file, len(restart_file), mpi_character,       &

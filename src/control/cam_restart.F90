@@ -4,6 +4,7 @@ module cam_restart
   private
 
   public :: cam_write_restart
+  public :: cam_read_restart
 
 CONTAINS
   subroutine cam_write_restart(dyn_out, yr_spec, mon_spec, day_spec, sec_spec)
@@ -101,6 +102,36 @@ CONTAINS
 
   end subroutine cam_write_restart
 
+!========================================================================================
+
+  subroutine cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
+     use dyn_comp,         only: dyn_import_t, dyn_export_t
+     use cam_initfiles,    only: initial_file_get_id
+     use pio,              only: file_desc_t
+     use cam_control_mod,  only: restart_run
+     use restart_physics,  only: restart_physics_read
+     use restart_dynamics, only: read_restart_dynamics
+     use cam_abortutils,   only: endrun
+     type(dyn_import_t), intent(inout) :: dyn_in
+     type(dyn_export_t), intent(inout) :: dyn_out
+     integer,            intent(in)    :: stop_ymd
+     integer,            intent(in)    :: stop_tod
+     ! Local variables
+     type(file_desc_t), pointer :: fh_restart
+
+     fh_restart => initial_file_get_id()
+
+     call endrun('peverwhee - got into read restart!')
+
+     call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
+
+!     call restart_physics_read(fh_restart)
+
+!     if (restart_run) then
+!        call read_restart_history()
+!     end if
+
+  end subroutine cam_read_restart
 !========================================================================================
 
   subroutine write_rest_pfile(restart_file, yr_spec, mon_spec, day_spec, sec_spec)
