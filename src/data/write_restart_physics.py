@@ -125,7 +125,7 @@ def write_restart_physics(cap_database, registry_constituents, restart_vars,
 
         # Write the restart read subroutine
         outfile.blank_line()
-        write_restart_physics_read(outfile)
+        write_restart_physics_read(outfile, required_restart_vars, constituent_dimmed_vars, used_vars)
 
     # end with
 
@@ -429,12 +429,51 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
 
     outfile.write("end subroutine restart_physics_write", 1)
 
-def write_restart_physics_read(outfile):
+def write_restart_physics_read(outfile, required_vars, constituent_dimmed_vars, used_vars):
     """
     Write the 'read' routine for the physics restart variables. This
     routine reads the physics fields from the restart (cam.r) file
     """
-    outfile.write("subroutine restart_physics_read()", 1)
+    outfile.write("subroutine restart_physics_read(file)", 1)
+
+    use_stmts = [["pio", ["file_desc_t", "io_desc_t", "pio_write_darray", "pio_double"]],
+                 ["cam_ccpp_cap", ["cam_model_const_properties","cam_constituents_array"]],
+                 ["ccpp_kinds", ["kind_phys"]],
+                 ["physics_data", ["read_field"]],
+                 ["ccpp_constituent_prop_mod", ["ccpp_constituent_prop_ptr_t"]],
+                 ["physics_grid", ["num_global_phys_cols"]],
+                 ["cam_grid_support", ["cam_grid_id", "cam_grid_write_dist_array"]]]
+    write_use_statements(outfile, use_stmts, 2)
+    for var in sorted(used_vars):
+        outfile.write(f"use physics_types, only: {var}", 2)
+    # end for
+
+    outfile.write("type(file_desc_t), intent(inout) :: file",   2)
+    outfile.blank_line()
+    outfile.write("integer :: timestep", 2)
+    outfile.blank_line()
+
+    outfile.comment("Set timestep to 0; only one frame on the restart file", 2)
+    outfile.write("timestep = 0", 2)
+    outfile.blank_line()
+
+    for key, value in required_vars.items():
+        if len(value['dims']) == 1 and 'horizontal_dimension' in value['dims'][0]:
+            outfile.comment("Handle horizontal-only field", 2)
+            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}'/), timestep, {key}", 2)
+        else:
+            # PEVERWHEE - TODO: handle nonstandard dimensions!
+            if 'layer' in value['dims'][1]:
+                vertdim = 'lev'
+            else:
+                vertdim = 'ilev'
+            # end if
+            outfile.comment(f"Read required restart variable '{value['stdname']}' from file", 2)
+            outfile.write(f"call read_field(file, '{value['stdname']}', (/'{value['diag_name']}'/), '{vertdim}', timestep, {key})", 2)
+            outfile.blank_line()
+        # end if
+    # end for
+
     outfile.write("end subroutine restart_physics_read", 1)
 
 #################
@@ -555,9 +594,9 @@ def gather_required_restart_variables(all_req_vars, restart_vars, host_dict):
             used_vars.add(used_var)
             dimensions = required_var.get_dimensions()
             if 'ccpp_constant_one:number_of_ccpp_constituents' in dimensions:
-                required_constituent_dimensioned_vars[local_name] = {'diag_name': diagnostic_name, 'dims': dimensions}
+                required_constituent_dimensioned_vars[local_name] = {'diag_name': diagnostic_name, 'dims': dimensions, 'stdname': stdname}
             else:
-                required_restart_vars[local_name] = {'diag_name': diagnostic_name, 'dims': dimensions}
+                required_restart_vars[local_name] = {'diag_name': diagnostic_name, 'dims': dimensions, 'stdname': stdname}
             # end if
         # end if (ignore all non-restart variables)
     # end for

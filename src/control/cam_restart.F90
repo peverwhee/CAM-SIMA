@@ -18,7 +18,6 @@ CONTAINS
     use pio,              only: pio_put_att, pio_enddef, pio_closefile
     use cam_grid_support, only: cam_grid_write_attr, cam_grid_id
     use cam_grid_support, only: cam_grid_header_info_t, cam_grid_write_var
-    use cam_grid_support, only: cam_grid_dimensions, cam_grid_get_decomp
     use physics_grid,     only: phys_decomp, num_global_phys_cols
     use dyn_comp,         only: dyn_export_t
     use cam_control_mod,  only: caseid
@@ -105,31 +104,39 @@ CONTAINS
 !========================================================================================
 
   subroutine cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
-     use dyn_comp,         only: dyn_import_t, dyn_export_t
-     use cam_initfiles,    only: initial_file_get_id
-     use pio,              only: file_desc_t
-     use cam_control_mod,  only: restart_run
-     use restart_physics,  only: restart_physics_read
-     use restart_dynamics, only: read_restart_dynamics
-     use cam_abortutils,   only: endrun
-     type(dyn_import_t), intent(inout) :: dyn_in
-     type(dyn_export_t), intent(inout) :: dyn_out
-     integer,            intent(in)    :: stop_ymd
-     integer,            intent(in)    :: stop_tod
-     ! Local variables
-     type(file_desc_t), pointer :: fh_restart
+    use dyn_comp,         only: dyn_import_t, dyn_export_t
+    use cam_initfiles,    only: initial_file_get_id
+    use pio,              only: file_desc_t
+    use cam_control_mod,  only: restart_run
+    use restart_physics,  only: restart_physics_read
+    use restart_dynamics, only: read_restart_dynamics
+    use cam_abortutils,   only: endrun
+    use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
+    type(dyn_import_t), intent(inout) :: dyn_in
+    type(dyn_export_t), intent(inout) :: dyn_out
+    integer,            intent(in)    :: stop_ymd
+    integer,            intent(in)    :: stop_tod
+    ! Local variables
+    type(file_desc_t), pointer :: fh_restart
+    integer                    :: grid_id
+    integer                    :: grid_dims(2)
+    integer                    :: nhdims
 
-     fh_restart => initial_file_get_id()
+    fh_restart => initial_file_get_id()
 
-     call endrun('peverwhee - got into read restart!')
+    ! Get grid info
+!    grid_id = cam_grid_id('physgrid')
+!    call cam_grid_dimensions(physgrid, gdims(1:2), nhdims)
 
-     call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
 
-!     call restart_physics_read(fh_restart)
+    call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
 
-!     if (restart_run) then
-!        call read_restart_history()
-!     end if
+    call restart_physics_read(fh_restart)
+    call endrun('peverwhee - past restart physics read!')
+
+!    if (restart_run) then
+!       call read_restart_history()
+!    end if
 
   end subroutine cam_read_restart
 !========================================================================================

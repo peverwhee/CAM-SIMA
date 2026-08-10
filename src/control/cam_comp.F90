@@ -233,20 +233,20 @@ CONTAINS
       !!XXgoldyXX: Leaving this place. Why before dyn_init?
       !call ionosphere_init()
 
-      if (initial_run_in) then
+!      if (initial_run_in) then
 
-         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+!         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
 
-      else
+!      else
 
-         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
+!         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
 
 !!XXgoldyXX: v need to import this
 !         if (BFB_CAM_SCAM_IOP) then
 !            call initialize_iop_history()
 !         end if
 !!XXgoldyXX: ^ need to import this
-      end if
+!      end if
 
       ! Read tropopause climatology
       call tropopause_climo_read_file()
@@ -266,7 +266,14 @@ CONTAINS
       ! Initialize orbital data
       call orbital_data_init(columns_on_task)
 
+! PEVERWHEE - PHYS AND DYN INIT ORDERING!??
       call phys_init()
+
+      if (initial_run_in) then
+         call dyn_init(cam_runtime_opts, dyn_in, dyn_out)
+      else
+         call cam_read_restart(dyn_in, dyn_out, stop_ymd, stop_tod)
+      end if
 
 !!XXgoldyXX: v need to import this
 !      call bldfld ()  ! master field list (if branch, only does hash tables)
