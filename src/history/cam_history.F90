@@ -34,6 +34,7 @@ module cam_history
    public :: history_wrap_up        ! Process history files at end of timestep or run
    public :: history_restart_init   ! Initialize history fields on restart file, if necessary
    public :: history_restart_write  ! Write restart files, if necessary
+   public :: history_restart_read   ! Read restart files, if necessary
 
    interface history_out_field
       module procedure history_out_field_1d
@@ -954,6 +955,24 @@ CONTAINS
       end do
 
    end subroutine history_restart_write
+
+!#######################################################################
+
+   subroutine history_restart_read(restart_file)
+      use pio,              only: file_desc_t
+      use cam_hist_restart, only: hist_restart_read
+      ! Dummy variables
+      type(file_desc_t), intent(inout) :: restart_file
+
+      if (max_num_fields == 0) then
+        ! Don't do anything if there aren't any history fields
+        return
+      end if
+
+      call hist_restart_read(restart_file, hist_configs, max_num_fields)
+
+   end subroutine history_restart_read
+
 !#######################################################################
 
    recursive function get_entry_by_name(listentry, name) result(entry)

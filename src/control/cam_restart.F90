@@ -112,6 +112,7 @@ CONTAINS
     use restart_dynamics, only: read_restart_dynamics
     use cam_abortutils,   only: endrun
     use cam_grid_support, only: cam_grid_id, cam_grid_dimensions
+    use cam_history,      only: history_restart_read
     type(dyn_import_t), intent(inout) :: dyn_in
     type(dyn_export_t), intent(inout) :: dyn_out
     integer,            intent(in)    :: stop_ymd
@@ -132,11 +133,12 @@ CONTAINS
     call read_restart_dynamics(fh_restart, dyn_in, dyn_out)
 
     call restart_physics_read(fh_restart)
-    call endrun('peverwhee - past restart physics read!')
 
-!    if (restart_run) then
-!       call read_restart_history()
-!    end if
+    if (restart_run) then
+       call history_restart_read(fh_restart)
+    end if
+
+    call endrun('peverwhee - past restart history read')
 
   end subroutine cam_read_restart
 !========================================================================================

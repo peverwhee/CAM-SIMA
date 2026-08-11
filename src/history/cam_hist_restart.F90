@@ -53,6 +53,7 @@ module cam_hist_restart
 
     public :: hist_restart_init
     public :: hist_restart_write
+    public :: hist_restart_read
 
 CONTAINS
 
@@ -242,6 +243,15 @@ CONTAINS
          end if
       end do
    end subroutine hist_restart_write
+
+   subroutine hist_restart_read(restart_file, hist_configs, max_num_fields)
+      use pio,           only: file_desc_t
+      use cam_hist_file, only: hist_file_t
+      type(file_desc_t), intent(inout) :: restart_file
+      type(hist_file_t), intent(in)    :: hist_configs(:)
+      integer,           intent(in)    :: max_num_fields
+
+   end subroutine hist_restart_read
 
    subroutine set_restart_variable_names()
       use pio, only: pio_int, pio_double, pio_char

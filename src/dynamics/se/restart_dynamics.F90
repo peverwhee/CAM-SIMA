@@ -317,7 +317,6 @@ subroutine write_elem()
    type(io_desc_t)  :: iodesc2d, iodesc3d
 
    real(kind=r8), pointer :: var3d(:,:,:,:), var2d(:,:,:)
-   type(ccpp_constituent_prop_ptr_t), pointer :: const_props(:)
    !----------------------------------------------------------------------------
 
    ldof => get_restart_decomp(elem, 1)
