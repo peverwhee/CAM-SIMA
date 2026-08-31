@@ -126,7 +126,7 @@ subroutine init_restart_dynamics(file, dyn_out)
       if (.not. advected) then
          cycle
       end if
-      ! Grab constituent diagnostic nam:
+      ! Grab constituent diagnostic name:
       call const_props(constituent_idx)%diagnostic_name(const_diag_name)
       ierr = PIO_Def_Var(File,"dp"//trim(const_diag_name), pio_double, &
                          (/ncol_dimid, nlev_dimid, time_dimid/), Qdesc_dp(advected_index))
@@ -187,7 +187,6 @@ subroutine write_restart_dynamics(File, dyn_out)
    use thread_mod,                only: horz_num_threads
    use spmd_utils,                only: iam
    use shr_kind_mod,              only: r8 => shr_kind_r8
-   use ccpp_constituent_prop_mod, only: ccpp_constituent_prop_ptr_t
 
    type(file_desc_t), intent(inout) :: File
    type(dyn_export_t), intent(in)   :: dyn_out

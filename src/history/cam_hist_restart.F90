@@ -36,7 +36,7 @@ module cam_hist_restart
     type(restart_variable_t)  :: restart_vars(num_restart_vars)
     type(restart_dimension_t) :: restart_dims(num_restart_dims)
 
-    integer, parameter :: max_num_fields = 1000
+!    integer, parameter :: max_num_fields = 1000
 
     integer, parameter :: num_configs_dim_ind         =  1
     integer, parameter :: max_string_len_dim_ind      =  2
@@ -58,6 +58,7 @@ module cam_hist_restart
 CONTAINS
 
    subroutine hist_restart_init(restart_file, num_hist_configs, max_fields)
+      ! Initialize history restart fields in the overall CAM restart file (.r.)
       use pio,           only: file_desc_t, pio_def_var
       use cam_pio_utils, only: cam_pio_handle_error, cam_pio_def_dim
       type(file_desc_t), intent(inout) :: restart_file
@@ -90,7 +91,8 @@ CONTAINS
 
    end subroutine hist_restart_init
 
-   subroutine hist_restart_write(restart_file, hist_configs, max_num_fields, just_written)
+   subroutine hist_restart_write(restart_file, hist_configs, max_fields, just_written)
+      ! Write history restart fields to the .r. file
       use pio,                 only: file_desc_t, pio_put_var
       use cam_hist_file,       only: hist_file_t
       use cam_history_support, only: max_chars, max_string_len, get_hist_coord_names, registeredmdims
@@ -98,7 +100,7 @@ CONTAINS
       use cam_abortutils,      only: endrun
       type(file_desc_t), intent(inout) :: restart_file
       type(hist_file_t), intent(in)    :: hist_configs(:)
-      integer,           intent(in)    :: max_num_fields
+      integer,           intent(in)    :: max_fields
       logical,           intent(in)    :: just_written(:)
 
       ! Local variables
@@ -107,25 +109,25 @@ CONTAINS
       integer :: num_fields(size(hist_configs))
       integer :: num_frames(size(hist_configs))
       integer :: max_frames(size(hist_configs))
-      integer :: ndims(max_num_fields)
-      integer :: decomp(max_num_fields, size(hist_configs))
-      integer :: num_levels(max_num_fields, size(hist_configs))
-      integer :: fill_flag(max_num_fields, size(hist_configs))
-      integer :: dimensions(max_dimensions, max_num_fields, size(hist_configs))
-      character(len=max_fieldname_len) :: field_list(max_num_fields, size(hist_configs))
+      integer :: ndims(max_fields)
+      integer :: decomp(max_fields, size(hist_configs))
+      integer :: num_levels(max_fields, size(hist_configs))
+      integer :: fill_flag(max_fields, size(hist_configs))
+      integer :: dimensions(max_dimensions, max_fields, size(hist_configs))
+      character(len=max_fieldname_len) :: field_list(max_fields, size(hist_configs))
       character(len=max_fieldname_len), allocatable :: field_list_config(:)
       character(len=max_chars) :: output_freq(size(hist_configs))
       character(len=max_string_len) :: current_files(size(hist_configs), max_split_files)
       character(len=max_chars) :: hist_precision(size(hist_configs))
-      character(len=max_chars) :: avg_flag(max_num_fields, size(hist_configs))
-      character(len=max_chars) :: long_name(max_num_fields, size(hist_configs))
-      character(len=max_chars) :: cell_methods(max_num_fields, size(hist_configs))
-      character(len=max_chars) :: units(max_num_fields, size(hist_configs))
+      character(len=max_chars) :: avg_flag(max_fields, size(hist_configs))
+      character(len=max_chars) :: long_name(max_fields, size(hist_configs))
+      character(len=max_chars) :: cell_methods(max_fields, size(hist_configs))
+      character(len=max_chars) :: units(max_fields, size(hist_configs))
       character(len=max_chars) :: volume(size(hist_configs))
       character(len=max_hcoordname_len) :: dim_names(registeredmdims)
       character(len=max_string_len) :: restart_file_paths(size(hist_configs))
       real(r8) :: beg_time(size(hist_configs))
-      real(r8) :: fill_value(max_num_fields, size(hist_configs))
+      real(r8) :: fill_value(max_fields, size(hist_configs))
       logical :: has_accum
 
       field_list = ''
@@ -239,17 +241,81 @@ CONTAINS
          case default
          end select
          if (ierr /= 0) then
-            call endrun('hist_restart_write: failed to write variable '//restart_vars(idx)%var_name)
+            call endrun('hist_restart_write: failed to write variable '//trim(restart_vars(idx)%var_name))
          end if
       end do
    end subroutine hist_restart_write
 
-   subroutine hist_restart_read(restart_file, hist_configs, max_num_fields)
-      use pio,           only: file_desc_t
-      use cam_hist_file, only: hist_file_t
+   subroutine hist_restart_read(restart_file, hist_configs, max_fields)
+      ! Read history fields from the .r. file
+      use pio,            only: file_desc_t, pio_inq_varid
+      use cam_hist_file,  only: hist_file_t
+      use cam_abortutils, only: endrun
+      use cam_logfile,    only: iulog
+      use spmd_utils,     only: masterproc
       type(file_desc_t), intent(inout) :: restart_file
       type(hist_file_t), intent(in)    :: hist_configs(:)
-      integer,           intent(in)    :: max_num_fields
+      integer,           intent(in)    :: max_fields
+      ! Local variables
+      integer :: idx, ierr
+      type(var_desc_t) :: vdesc
+      integer :: has_rh_int(size(hist_configs))
+      integer :: num_fields(size(hist_configs))
+      integer :: num_frames(size(hist_configs))
+      integer :: max_frames(size(hist_configs))
+      integer :: ndims(max_fields)
+      integer :: decomp(max_fields, size(hist_configs))
+      integer :: num_levels(max_fields, size(hist_configs))
+      integer :: fill_flag(max_fields, size(hist_configs))
+      integer :: dimensions(max_dimensions, max_fields, size(hist_configs))
+      character(len=max_fieldname_len) :: field_list(max_fields, size(hist_configs))
+      character(len=max_fieldname_len), allocatable :: field_list_config(:)
+      character(len=max_chars) :: output_freq(size(hist_configs))
+      character(len=max_string_len) :: current_files(size(hist_configs), max_split_files)
+      character(len=max_chars) :: hist_precision(size(hist_configs))
+      character(len=max_chars) :: avg_flag(max_fields, size(hist_configs))
+      character(len=max_chars) :: long_name(max_fields, size(hist_configs))
+      character(len=max_chars) :: cell_methods(max_fields, size(hist_configs))
+      character(len=max_chars) :: units(max_fields, size(hist_configs))
+      character(len=max_chars) :: volume(size(hist_configs))
+      character(len=max_hcoordname_len) :: dim_names(registeredmdims)
+      character(len=max_string_len) :: restart_file_paths(size(hist_configs))
+      real(r8) :: beg_time(size(hist_configs))
+      real(r8) :: fill_value(max_fields, size(hist_configs))
+      logical :: has_accum
+
+      ! Check if the restart (.r.) file has history variables on it
+      ! If not, no action needed (original run had no history variables)
+      ierr = pio_inq_varid(File, 'has_rh_file', vdesc)
+      if (ierr /= 0) then
+         if (masterproc) then
+            write(iulog,*) 'Not reading history info from the restart file.'
+         end if
+         return
+      end if
+
+      ! Set the restart dimensions and variables for reading from the file
+      call set_restart_variable_names()
+      call set_restart_dimension_names(size(hist_configs), max_fields)
+
+      ! Loop over the restart vars and read them from the file
+      do idx = 1, num_restart_vars
+         ! Confirm the variable is on the .r. file
+         ierr = pio_inq_varid(File, 'has_rh_file', vdesc)
+         if (ierr /= 0) then
+            call endrun('hist_restart_read: restart file missing variable '//trim(restart_vars(idx)%var_name))
+         end if
+         select case(restart_vars(idx)%number_of_dimensions)
+         case (1)
+            ierr = pio_inq_varid(File, 'has_rh_file', vdesc)
+         case (2)
+         case (3)
+         case default
+         end select
+         if (ierr /= 0) then
+            call endrun('hist_restart_read: failed to read variable '//trim(restart_vars(idx)%var_name))
+         end if
+      end do
 
    end subroutine hist_restart_read
 

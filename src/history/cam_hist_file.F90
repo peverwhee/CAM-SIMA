@@ -162,6 +162,7 @@ module cam_hist_file
       procedure :: close_restart_file => config_close_restart_file
       procedure :: clear_buffers => config_clear_buffers
       procedure :: reset_samples => config_reset_samples
+      procedure :: check_restart_consistency => config_check_restart_consistency
    end type hist_file_t
 
    private :: count_array         ! Number of non-blank strings in array
@@ -758,6 +759,29 @@ CONTAINS
          nullify(this%interp_info)
       end if
    end subroutine config_reset
+
+   ! ========================================================================
+
+   subroutine config_check_restart_consistency(this, restart_comp)
+      ! Compare this history file object with another
+      use cam_abortutils, only: endrun
+      ! Dummy arguments
+      class(hist_file_t),         intent(in)    :: this
+      class(hist_file_t),         intent(in)    :: restart_comp
+      ! Local variables
+      logical :: has_error
+      character(len=1024) :: errstr
+
+      has_error = .false.
+      errstr = 'check_restart_consistency: namelist history configuration MUST match that of initial run.\n'
+
+      if (has_error) then
+         call endrun(trim(errstr))
+      end if
+
+
+   end subroutine config_check_restart_consistency
+
 
    ! ========================================================================
 
