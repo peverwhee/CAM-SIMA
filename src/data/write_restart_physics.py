@@ -262,10 +262,11 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
         outfile.blank_line()
     # end for
 
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
     # Handle constituent-dimensioned variables
     if constituent_dimmed_vars:
-        outfile.write("const_props => cam_model_const_properties()", 2)
-        outfile.blank_line()
         for key, value in constituent_dimmed_vars.items():
             hdimids = []
             for dimension in value['dims']:
@@ -313,7 +314,9 @@ def write_restart_physics_init(outfile, required_vars, constituent_dimmed_vars, 
     outfile.blank_line()
     outfile.comment("Handling for non-advected constituent vars (advected constituents handled by dynamics restart)", 2)
     outfile.comment("Allocate cnst_desc to total size of constituents array; some will be unused", 2)
-    outfile.write("allocate(cnst_desc(size(const_props)))", 2)
+    outfile.write("if (.not. allocated(cnst_desc)) then", 2)
+    outfile.write("allocate(cnst_desc(size(const_props)))", 3)
+    outfile.write("end if", 2)
     outfile.write("nonadvected_idx = 1", 2)
     hdimids = []
     hdimids.append(dimensions_dict['horizontal_dimension']['index'])
@@ -397,10 +400,11 @@ def write_restart_physics_write(outfile, required_vars, constituent_dimmed_vars,
         # end if
     # end for
 
+    outfile.write("const_props => cam_model_const_properties()", 2)
+    outfile.blank_line()
+
     # Handle constituent-dimensioned variables
     if constituent_dimmed_vars:
-        outfile.write("const_props => cam_model_const_properties()", 2)
-        outfile.blank_line()
         for key, value in constituent_dimmed_vars.items():
             outfile.comment(f"Handling for constituent-dimensioned variable '{value['diag_name']}'", 2)
             outfile.write("do constituent_idx = 1, size(const_props)", 2)
