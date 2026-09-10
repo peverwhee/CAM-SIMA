@@ -14,7 +14,6 @@ module cam_hist_file
    use runtime_obj,         only: UNSET_I => unset_int
    use runtime_obj,         only: UNSET_C => unset_str
    use runtime_obj,         only: UNSET_R8 => unset_real
-   use cam_logfile, only: iulog
 
    implicit none
    private
@@ -388,13 +387,11 @@ CONTAINS
       character(len=512) :: errmsg
       integer :: ierr, idx
 
-      allocate(field_list(size(this%field_list)), stat=ierr, errmsg=errmsg)
+      allocate(field_list(size(this%field_names)), stat=ierr, errmsg=errmsg)
       if (ierr /= 0) then
          call endrun('config_get_field_list: failed to allocate field_list; errmsg = '//errmsg)
       end if
-      do idx = 1, size(this%field_list)
-         field_list(idx) = this%field_list(idx)%diag_name()
-      end do
+      field_list = this%field_names
 
    end function config_get_field_list
 
@@ -405,7 +402,7 @@ CONTAINS
       use cam_history_support, only: max_chars
       ! Dummy arguments
       class(hist_file_t), intent(in) :: this
-      character(len=max_chars), allocatable :: avgflags(:)
+      character(len=3), allocatable :: avgflags(:)
       ! Local variables
       character(len=512) :: errmsg
       integer :: ierr, idx
@@ -414,9 +411,8 @@ CONTAINS
       if (ierr /= 0) then
          call endrun('config_get_averaging_flags: failed to allocate avgflags; errmsg = '//errmsg)
       end if
-      do idx = 1, size(this%field_list)
-         avgflags(idx) = this%field_list(idx)%accumulate_type()
-      end do
+      avgflags = this%accumulate_types
+
    end function config_get_averaging_flags
 
    ! ========================================================================
@@ -623,16 +619,11 @@ CONTAINS
 
       select case(to_lower(trim(this%output_freq_type)))
       case ("step")
-         out_opt = "time step"
+         out_opt = "nsteps"
       case default
          out_opt = trim(this%output_freq_type)
       end select
-      if (this%output_freq_mult > 1) then
-         plural = "s"
-      else
-         plural = ""
-      end if
-      write(out_freq, '(i0,1x,2a)') this%output_freq_mult, trim(out_opt), plural
+      write(out_freq, '(i0,2a)') this%output_freq_mult, '*', trim(out_opt)
 
    end function config_output_freq
 
@@ -763,26 +754,109 @@ CONTAINS
 
    ! ========================================================================
 
-   subroutine config_check_restart_consistency(this, restart_comp)
+   subroutine config_check_restart_consistency(this, hist_comp)
       ! Compare this history file object with another
+      ! Used to confirm no history configuration has changed upon restart
       use cam_abortutils, only: endrun
+      use string_utils,   only: stringify
       ! Dummy arguments
       class(hist_file_t),         intent(in)    :: this
-      class(hist_file_t),         intent(in)    :: restart_comp
+      class(hist_file_t),         intent(in)    :: hist_comp
       ! Local variables
       logical :: has_error
+      logical :: has_field_error
+      integer :: field_idx, hist_idx
       character(len=1024) :: errstr
+      character(len=256)  :: tmpstr
+      character(len=128)  :: fieldlist_str1
+      character(len=128)  :: fieldlist_str2
+      character(len=max_fldlen), allocatable :: hist_field_list(:)
+      character(len=3), allocatable :: hist_accum_list(:)
 
       has_error = .false.
-      errstr = 'check_restart_consistency: namelist history configuration MUST match that of initial run.\n'
+      has_field_error = .false.
+      errstr = 'check_restart_consistency: namelist history configuration MUST match that of initial run.'
+
+      ! Check volume name
+      ! It's an immediate error if there's a volume name mismatch (not worth trying to compare the rest of the fields)
+      if (trim(this%volume) /= trim(hist_comp%get_volume())) then
+         tmpstr = 'Old: '//trim(hist_comp%get_volume())//new_line('')//'Restart: '//trim(this%volume)
+         errstr = trim(errstr)//new_line('')//'History volume name mismatch or missing volume.'//new_line('')//trim(tmpstr)
+         call endrun(trim(errstr))
+      end if
+
+      ! Check precision
+      if (trim(this%precision()) /= trim(hist_comp%precision())) then
+         tmpstr = 'Old: '//trim(hist_comp%precision())//new_line('')//'Restart: '//trim(this%precision())
+         errstr = trim(errstr)//new_line('')//'Precision mismatch for volume '//trim(this%volume)//new_line('')//trim(tmpstr)
+         has_error = .true.
+      end if
+
+      ! Check max frames
+      if (this%max_frames /= hist_comp%max_frame()) then
+         tmpstr = 'Old: '//stringify([hist_comp%max_frame()])//new_line('')//'Restart: '//stringify([this%max_frames])
+         errstr = trim(errstr)//new_line('')//'Max frames mismatch for volume '//trim(this%volume)//new_line('')//trim(tmpstr)
+         has_error = .true.
+      end if
+
+      ! Check frequency
+      if (trim(this%output_freq()) /= trim(hist_comp%output_freq())) then
+         tmpstr = 'Old: '//trim(hist_comp%output_freq())//new_line('')//'Restart: '//trim(this%output_freq())
+         errstr = trim(errstr)//new_line('')//'Output frequency mismatch for volume '//trim(this%volume)//new_line('')//trim(tmpstr)
+         has_error = .true.
+      end if
+
+      ! Check field lists and accum flags
+      hist_field_list = hist_comp%get_field_list()
+      hist_accum_list = hist_comp%get_averaging_flags()
+
+      ! Check overall list size
+      if (size(hist_field_list) /= size(this%field_names)) then
+         has_field_error = .true.
+      else
+         ! Check fields and accumulate types
+         do field_idx = 1, size(this%field_names)
+           hist_idx = findloc(hist_field_list, this%field_names(field_idx), dim=1)
+           if (hist_idx == 0) then
+              ! Field not found on restart file
+              has_field_error = .true.
+              exit
+           else
+              ! Check accumulate flag
+              if (trim(this%accumulate_types(field_idx)) /= trim(hist_accum_list(hist_idx))) then
+                 has_field_error = .true.
+                 exit
+              end if
+           end if
+         end do
+      end if
+
+      ! If there's any field error, print out the full field list + averaging flags
+      if (has_field_error) then
+         fieldlist_str1 = 'Old field list: '
+         fieldlist_str2 = 'Restart field list: '
+         do field_idx = 1, size(this%field_names)
+            if (field_idx > 1) then
+               fieldlist_str2 = trim(fieldlist_str2) // ', '
+            end if
+            fieldlist_str2 = trim(fieldlist_str2) // trim(this%field_names(field_idx)) // ':' // trim(this%accumulate_types(field_idx))
+         end do
+         do field_idx = 1, size(hist_field_list)
+            if (field_idx > 1) then
+               fieldlist_str1 = trim(fieldlist_str1) // ', '
+            end if
+            fieldlist_str1 = trim(fieldlist_str1) // trim(hist_field_list(field_idx)) // ':' // trim(hist_accum_list(field_idx))
+         end do
+         errstr = trim(errstr)//new_line('')//'Field or accumulate flag mismatch for volume '// &
+            trim(this%volume)//new_line('')//trim(fieldlist_str1)//new_line('')//trim(fieldlist_str2)
+         has_error = .true.
+      end if
 
       if (has_error) then
          call endrun(trim(errstr))
       end if
 
-
    end subroutine config_check_restart_consistency
-
 
    ! ========================================================================
 
@@ -2078,7 +2152,6 @@ CONTAINS
       use time_manager,  only: set_date_from_time_float, get_step_size
       use datetime_mod,  only: datetime
       use spmd_utils,    only: masterproc
-      use cam_logfile,   only: iulog
       use perf_mod,      only: t_startf, t_stopf
       use cam_pio_utils, only: cam_pio_handle_error
       ! Dummy arguments

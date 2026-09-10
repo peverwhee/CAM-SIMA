@@ -961,15 +961,23 @@ CONTAINS
    subroutine history_restart_read(restart_file)
       use pio,              only: file_desc_t
       use cam_hist_restart, only: hist_restart_read
+      use cam_abortutils,   only: check_allocate
       ! Dummy variables
       type(file_desc_t), intent(inout) :: restart_file
+      character(len=256) :: errmsg
+      integer :: ierr
+!      type(hist_file_t), allocatable :: rest_configs(:)
 
       if (max_num_fields == 0) then
         ! Don't do anything if there aren't any history fields
         return
       end if
 
-      call hist_restart_read(restart_file, hist_configs, max_num_fields)
+!      allocate(rest_configs(size(hist_configs), stat=ierr, errmsg=errmsg)
+!      call check_allocate(ierr, 'history_restart_read', 'rest_configs', &
+!                 file=__FILE__, line=__LINE__-1, errmsg=errmsg)
+
+      call hist_restart_read(restart_file, hist_configs)
 
    end subroutine history_restart_read
 
