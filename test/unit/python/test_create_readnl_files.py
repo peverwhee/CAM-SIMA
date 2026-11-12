@@ -62,7 +62,7 @@ sys.path.append(_CIME_CONFIG_DIR)
 # pylint: disable=wrong-import-position
 from create_readnl_files import gen_namelist_files, NamelistFiles, NamelistError
 from create_readnl_files import NLVar
-from parse_tools import ParseInternalError  #CCPP error class
+from sima_xml_tools import ParseInternalError  #CCPP error class
 # pylint: enable=wrong-import-position
 
 ###############################################################################

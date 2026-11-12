@@ -67,7 +67,7 @@ try:
     from ccpp_capgen import capgen
     from create_readnl_files import gen_namelist_files
     from framework_env import CCPPFrameworkEnv
-    from parse_tools import read_xml_file
+    from sima_xml_tools import read_xml_file
     ##XXgoldyXX: See note below about when these imports can be removed
     from ccpp_datafile import DatatableReport
     from ccpp_datafile import datatable_report

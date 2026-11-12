@@ -37,9 +37,9 @@ if _SPINSCRIPTS not in sys.path:
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
-from parse_tools import validate_xml_file, read_xml_file
-from parse_tools import init_log, CCPPError, ParseInternalError
-from fortran_tools import FortranWriter
+from sima_xml_tools import read_xml_file
+from sima_xml_tools import validate_xml_file, ParseInternalError
+from sima_fortran_writer import SimaFortranWriter
 # pylint: enable=wrong-import-position
 
 #Names for possible auto-generated loop variables:
@@ -69,7 +69,7 @@ def is_int(token):
     >>> is_int(3.14159) #doctest: +ELLIPSIS
     Traceback (most recent call last):
     ...
-    parse_source.ParseInternalError: <token> should be a string or None, not '<class 'float'>'
+    sima_xml_tools.ParseInternalError: <token> should be a string or None, not '<class 'float'>'
     """
     isint = False
     if isinstance(token, str):
@@ -352,7 +352,7 @@ class NLVar:
         >>> NLVar._parse_array_desc("15,,3", "foobar")
         Traceback (most recent call last):
         ...
-        parse_source.ParseInternalError: Invalid array argument, '15,,3', for foobar
+        sima_xml_tools.ParseInternalError: Invalid array argument, '15,,3', for foobar
         """
         if alen:
             try:
@@ -631,8 +631,8 @@ class SchemeNamelistInfo:
                 emsg = f"Invalid namelist XML file, {self.namelist_def_file}"
                 file_ok = validate_xml_file(self.namelist_def_file,
                                             schema_file, "", logger)
-            except CCPPError as ccpperr:
-                cemsg = "{}".format(ccpperr).split('\n', maxsplit=1)[0]
+            except ValueError as err:
+                cemsg = "{}".format(err).split('\n', maxsplit=1)[0]
                 if cemsg[0:12] == 'Execution of':
                     xstart = cemsg.find("'")
                     if xstart >= 0:
@@ -689,7 +689,7 @@ class SchemeNamelistInfo:
             logger.info(f"Writing Fortran module, {self.__nlread_file}")
         # end if
 
-        with FortranWriter(self.__nlread_file, "w", file_desc,
+        with SimaFortranWriter(self.__nlread_file, file_desc,
                            self.nlread_module, indent=indent) as ofile:
             # Write out any kinds needed
             for kind in sorted(file_kinds):
@@ -1067,7 +1067,7 @@ an XML namelist definition filename""")
            algorithm (is_scheme_active) with a hash table to
            improve performance."""
         ##XXgoldyXX: ^ remove this when hash table is implemented
-        with FortranWriter(self.__scheme_read_file, "w", file_desc,
+        with SimaFortranWriter(self.__scheme_read_file, file_desc,
                            self.namelist_read_mod, indent=self.indent) as ofile:
             set_active_schemes = "set_active_schemes"
             is_scheme_active = "is_scheme_active"

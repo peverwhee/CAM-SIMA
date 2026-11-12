@@ -69,9 +69,6 @@ sys.path.append(_CAM_CONF_DIR)
 #Import CAM Build Cache object:
 # pylint: disable=wrong-import-position
 from cam_build_cache import FileStatus, BuildCacheCAM
-
-#Import CCPP Error type:
-from parse_source import CCPPError
 # pylint: enable=wrong-import-position
 
 #++++++++++++++++
@@ -322,7 +319,7 @@ class CamBuildCacheTestRoutine(unittest.TestCase):
         emsg = f"read_xml_file: Cannot read {non_xml_file}, syntax error: line 1, column 0"
 
         #Expect CCPP error when initializing object:
-        with self.assertRaises(CCPPError) as cerr:
+        with self.assertRaises(ValueError) as cerr:
             _ = BuildCacheCAM(non_xml_file)
         #End with
 

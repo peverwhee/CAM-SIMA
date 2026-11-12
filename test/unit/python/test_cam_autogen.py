@@ -70,7 +70,7 @@ from cam_autogen import _find_metadata_files, generate_registry
 from cam_autogen import generate_physics_suites, generate_init_routines
 
 #Import necessary CCPP framework functions:
-from parse_tools import read_xml_file
+from sima_xml_tools import read_xml_file
 
 # pylint: enable=wrong-import-position
 

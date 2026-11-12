@@ -13,7 +13,7 @@ import os.path
 # CCPP Framework import statements
 from ccpp_state_machine import CCPP_STATE_MACH
 from ddt_library import VarDDT
-from fortran_tools import FortranWriter
+from sima_fortran_writer import SimaFortranWriter
 from var_props import is_horizontal_dimension, is_vertical_dimension
 
 # Exclude these standard names from init processing
@@ -45,12 +45,9 @@ _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
 # Include files to insert in the module body
 _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
 
-# Increase allowed line lengths needed to fit extra-long CCPP standard names:
-# FIXME: this cannot be lowered to the Fortitude 132 char limit due to
-# upstream bug in FortranWriter writing a continuation line with only '&' when
-# a statement is only a few chars longer than _LINE_FILL_LEN (syntax error.)
-_LINE_FILL_LEN = 150
-_MAX_LINE_LEN = 200
+# Line lengths for generated Fortran (Fortitude limit is 132)
+_LINE_FILL_LEN = 100
+_MAX_LINE_LEN = 132
 
 ##############
 #Main function
@@ -171,9 +168,9 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
     # Log file creation:
     logger.info(f"Writing initialization-checking source file, {ofilename}")
 
-    # Open file using CCPP's FortranWriter:
+    # Open file using SimaFortranWriter:
     file_desc = "Initialization-checking source file"
-    with FortranWriter(ofilename, "w", file_desc,
+    with SimaFortranWriter(ofilename, file_desc,
                        phys_check_fname_str,
                        line_fill=_LINE_FILL_LEN,
                        line_max=_MAX_LINE_LEN,
@@ -231,9 +228,9 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
     # Log file creation:
     logger.info(f"Writing initial conditions source file, {ofilename}")
 
-    # Open file using CCPP's FortranWriter:
+    # Open file using SimaFortranWriter:
     file_desc = f"Initial conditions source file, {phys_input_filename}"
-    with FortranWriter(ofilename, "w", file_desc,
+    with SimaFortranWriter(ofilename, file_desc,
                        phys_input_fname_str,
                        indent=indent,
                        line_fill=_LINE_FILL_LEN,
@@ -321,7 +318,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
         # cannot be read from initial-conditions files; the host model
         # initializes it at run time and marks it via mark_as_initialized.
         # Exclude it from generated read/check code. (Var.intrinsic_elements
-        # would also raise a CCPPError for a DDT variable when called
+        # would also raise an error for a DDT variable when called
         # without a DDT library, as done below.)
         return missing_vars
     if hvar and (hvar.source.ptype != 'host'):

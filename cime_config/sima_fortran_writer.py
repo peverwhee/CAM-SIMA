@@ -1,20 +1,9 @@
-#!/usr/bin/env python3
-#
-
-"""Code to write Fortran code
-"""
+"""CAM-SIMA writer for generated Fortran modules."""
 
 import math
 
-class FortranWriter:
-    """Class to turn output into properly continued and indented Fortran code
-    >>> FortranWriter("foo.F90", 'r', 'test', 'mod_name') #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    ValueError: Read mode not allowed in FortranWriter object
-    >>> FortranWriter("foo.F90", 'wb', 'test', 'mod_name') #doctest: +IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-    ValueError: Binary mode not allowed in FortranWriter object
-    """
+class SimaFortranWriter:
+    """Class to turn output into properly continued and indented Fortran code"""
 
     ###########################################################################
     # Class variables
@@ -64,7 +53,7 @@ end module {module}'''
         'Return an indent string for any level'
         indent = self.indent_size * level
         if continue_line:
-            indent = indent + self.__continue_indent
+            indent = indent + SimaFortranWriter.__CONTINUE_INDENT
         # End if
         return indent*' '
 
@@ -93,13 +82,13 @@ end module {module}'''
     @staticmethod
     def _in_quote(test_str):
         """Return True if <test_str> ends in a character context.
-        >>> FortranWriter._in_quote("hi'mom")
+        >>> SimaFortranWriter._in_quote("hi'mom")
         True
-        >>> FortranWriter._in_quote("hi mom")
+        >>> SimaFortranWriter._in_quote("hi mom")
         False
-        >>> FortranWriter._in_quote("'hi mom'")
+        >>> SimaFortranWriter._in_quote("'hi mom'")
         False
-        >>> FortranWriter._in_quote("'hi"" mom'")
+        >>> SimaFortranWriter._in_quote("'hi"" mom'")
         False
         """
         in_single_char = False
@@ -178,7 +167,7 @@ end module {module}'''
                     elif outstr[sptr:sptr+2] == '//':
                         # Non-quote syntax are where we can break
                         break_chars.append(sptr + 1)
-                    elif outstr[sptr] in FortranWriter.__BREAK_CHARS:
+                    elif outstr[sptr] in SimaFortranWriter.__BREAK_CHARS:
                         # Non-quote syntax are where we can break
                         break_chars.append(sptr)
                     # End if (no else, other characters will be ignored)
@@ -196,6 +185,12 @@ end module {module}'''
                     if min(spaces) < first_space:
                         spaces = [x for x in spaces if x >= first_space]
                     # end if
+                if ostmt.endswith('&') and not is_comment_stmt:
+                    # Don't split off the statement's own trailing '&'
+                    spaces = [x for x in spaces if outstr[x+1:].strip() != '&']
+                    break_chars = [x for x in break_chars
+                                   if outstr[x+1:].strip() != '&']
+                # end if
                 best = self.find_best_break(spaces)
                 if best >= self.__line_fill:
                     best = min(best, self.find_best_break(break_chars))
@@ -211,8 +206,8 @@ end module {module}'''
                 # end if
                 if len(outstr) > best:
                     if self._in_quote(outstr[0:best+1]):
-                        if best >= FortranWriter.__LINE_MAX - 1:
-                            best = FortranWriter.__LINE_MAX - 2
+                        if best >= self.__line_max - 1:
+                            best = self.__line_max - 2
                         # end if
                         line_continue = '&'
                     elif not outstr[best+1:].lstrip():
@@ -257,39 +252,26 @@ end module {module}'''
 
     ###########################################################################
 
-    def __init__(self, filename, mode, file_description, module_name,
-                 indent=None, continue_indent=None,
-                 line_fill=None, line_max=None):
-        """Initialize thie FortranWriter object.
+    def __init__(self, filename, file_description, module_name,
+                 indent=None, line_fill=None, line_max=None):
+        """Initialize this SimaFortranWriter object.
         Some boilerplate is written automatically."""
         self.__file_desc = file_description.replace('\n', '\n!! ')
         self.__module = module_name
-        # We only handle writing situations (for now) and only text
-        if 'r' in mode:
-            raise ValueError('Read mode not allowed in FortranWriter object')
-        # end if
-        if 'b' in mode:
-            raise ValueError('Binary mode not allowed in FortranWriter object')
-        # End if
-        self.__file = open(filename, mode)
+        self.__file = open(filename, 'w')
         if indent is None:
-            self.__indent = FortranWriter.__INDENT
+            self.__indent = SimaFortranWriter.__INDENT
         else:
             self.__indent = indent
         # End if
-        if continue_indent is None:
-            self.__continue_indent = FortranWriter.__CONTINUE_INDENT
-        else:
-            self.__continue_indent = continue_indent
-        # End if
         if line_fill is None:
-            self.__line_fill = FortranWriter.__LINE_FILL
+            self.__line_fill = SimaFortranWriter.__LINE_FILL
         else:
             self.__line_fill = line_fill
         # End if
         self.__max_comment_start = math.ceil(self.__line_fill * 3 / 4)
         if line_max is None:
-            self.__line_max = FortranWriter.__LINE_MAX
+            self.__line_max = SimaFortranWriter.__LINE_MAX
         else:
             self.__line_max = line_max
         # End if
@@ -300,7 +282,7 @@ end module {module}'''
         """Write the module boilerplate that goes between use statements
         and module declarations."""
         self.write("", 0)
-        for stmt in FortranWriter.__MOD_PREAMBLE:
+        for stmt in SimaFortranWriter.__MOD_PREAMBLE:
             self.write(stmt, 1)
         # end for
         self.write("", 0)
@@ -309,29 +291,22 @@ end module {module}'''
 
     def end_module_header(self):
         """Write the module contains statement."""
-        self.write(FortranWriter.__CONTAINS, 0)
+        self.write(SimaFortranWriter.__CONTAINS, 0)
 
     ###########################################################################
 
     def __enter__(self, *args):
-        self.write(FortranWriter.__COPYRIGHT, 0)
-        self.write(self.module_header(), 0)
+        self.write(SimaFortranWriter.__COPYRIGHT, 0)
+        self.write(SimaFortranWriter.__MOD_HEADER.format(file_desc=self.__file_desc,
+                                                     module=self.__module), 0)
         return self
 
     ###########################################################################
 
     def __exit__(self, *args):
-        self.write(FortranWriter.__MOD_FOOTER.format(module=self.__module), 0)
+        self.write(SimaFortranWriter.__MOD_FOOTER.format(module=self.__module), 0)
         self.__file.close()
         return False
-
-    ###########################################################################
-
-    def module_header(self):
-        """Return the standard Fortran module header for <filename> and
-        <module>"""
-        return FortranWriter.__MOD_HEADER.format(file_desc=self.__file_desc,
-                                                 module=self.__module)
 
     ###########################################################################
 
@@ -371,66 +346,3 @@ end module {module}'''
               Fortran file
         """
         return self.__indent
-
-    ###########################################################################
-
-    @classmethod
-    def copyright(cls):
-        """Return the standard Fortran file copyright string"""
-        return cls.__COPYRIGHT
-
-###############################################################################
-if __name__ == "__main__":
-    # First, run doctest
-    # pylint: disable=ungrouped-imports
-    import doctest
-    import os
-    import sys
-    # pylint: enable=ungrouped-imports
-    fail, _ = doctest.testmod()
-    # Make sure we can write a file
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    NAME = 'foo'
-    while os.path.exists(NAME+'.F90'):
-        NAME = NAME + 'xo'
-    # end while
-    NAME = NAME + '.F90'
-    if os.access(os.getcwd(), os.W_OK):
-        _CHECK = FortranWriter.copyright().split('\n')
-        with FortranWriter(NAME, 'w', 'doctest', 'foo') as foo:
-            foo.write_preamble()
-            foo.end_module_header()
-            foo.write(("subroutine foo(long_argument1, long_argument2, "
-                       "long_argument3, long_argument4, long_argument5)"), 2)
-            foo.write("end subroutine foo", 2)
-            _CHECK.extend(foo.module_header().rstrip().split('\n'))
-        # End with
-        _CHECK.extend(["", "", "   implicit none", "   private",
-                       "", "", "CONTAINS"])
-        _CHECK.extend([('      subroutine foo(long_argument1, long_argument2, '
-                        'long_argument3, long_argument4,              &'),
-                       '           long_argument5)',
-                       '      end subroutine foo', '',
-                       'end module foo'])
-        # Check file
-        with open(NAME, 'r') as foo:
-            _STATEMENTS = foo.readlines()
-            if len(_STATEMENTS) != len(_CHECK):
-                EMSG = "ERROR: File has {} statements, should have {}"
-                print(EMSG.format(len(_STATEMENTS), len(_CHECK)))
-            else:
-                for _line_num, _statement in enumerate(_STATEMENTS):
-                    if _statement.rstrip() != _CHECK[_line_num]:
-                        EMSG = "ERROR: Line {} does not match"
-                        print(EMSG.format(_line_num+1))
-                        print("{}".format(_statement.rstrip()))
-                        print("{}".format(_CHECK[_line_num]))
-                    # end if
-                # end for
-        # end with
-        os.remove(NAME)
-    else:
-        print("WARNING: Unable to write test file, '{}'".format(NAME))
-    # end if
-    sys.exit(fail)
-# end if

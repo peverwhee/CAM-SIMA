@@ -31,7 +31,7 @@ if __CCPP_FRAMEWORK not in sys.path:
 
 # CCPP framework imports
 # pylint: disable=wrong-import-position
-from parse_tools import read_xml_file
+from sima_xml_tools import read_xml_file
 # pylint: enable=wrong-import-position
 
 ###############################################################################

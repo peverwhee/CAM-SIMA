@@ -27,16 +27,6 @@ class TestCcppStateMachineShim(unittest.TestCase):
         self.assertIn('run', phases)
 
 
-class TestParseToolsShim(unittest.TestCase):
-
-    def test_re_exports(self):
-        import parse_tools as pt
-        for name in ('validate_xml_file', 'read_xml_file',
-                     'find_schema_file', 'find_schema_version',
-                     'init_log', 'CCPPError', 'ParseInternalError'):
-            self.assertTrue(hasattr(pt, name))
-
-
 class TestMetadataTableShim(unittest.TestCase):
 
     def test_imports(self):
@@ -55,13 +45,6 @@ class TestDdtLibraryShim(unittest.TestCase):
         # test against a wrapper from the host dict, so it has to sit on
         # the _VarWrapper branch of the hierarchy.
         self.assertTrue(issubclass(VarDDT, _VarWrapper))
-
-
-class TestFortranToolsShim(unittest.TestCase):
-
-    def test_fortran_writer_importable(self):
-        from fortran_tools import FortranWriter
-        self.assertTrue(isinstance(FortranWriter, type))
 
 
 if __name__ == '__main__':
