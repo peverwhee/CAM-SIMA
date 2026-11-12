@@ -23,10 +23,6 @@ Capgen's parser does not need any of them -- DDT cross-references
 are built lazily, logging is via the module-level logger, and source
 paths are always absolute.  The shim accepts all five positional /
 keyword arguments and silently discards the extras.
-
-``find_scheme_names`` is synthesised on top of capgen's
-:func:`parse_metadata_file` plus a ``t.is_scheme`` filter; original
-capgen exported it directly.
 """
 
 from metadata.metadata_table import (
@@ -473,60 +469,7 @@ def _scan_module_origin_tables(file_path):
     return flagged
 
 
-def find_scheme_names(file_path: str) -> list:
-    """Return the list of scheme names declared in ``file_path``.
-
-    Lightweight string scan: walk ``[ccpp-table-properties]`` blocks
-    and collect the ``name = ...`` field of every block whose
-    ``type = scheme``.  Original capgen exported this helper as a
-    similarly lightweight scan; CAM-SIMA's ``cam_autogen.py`` uses it
-    as a discovery callback into ``_find_metadata_files`` -- it cares
-    only about scheme NAMES, not whether each scheme block is a
-    valid CCPP scheme by capgen's strict semantic rules (which
-    includes per-phase arg-table validation).  Routing through
-    :func:`parse_metadata_file` would fail-fast on degenerate
-    discovery fixtures (e.g. namelist-reader pseudo-schemes whose
-    arg-table section names don't carry a ``_<phase>`` suffix); the
-    string scan side-steps that check.
-    """
-    names = []
-    try:
-        with open(file_path, encoding='utf-8') as fh:
-            text = fh.read()
-    except (OSError, UnicodeDecodeError):
-        return names
-    cur_name = None
-    cur_type = None
-    in_table_props = False
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped == _TABLE_HDR:
-            if (cur_type or '').lower() == 'scheme' and cur_name:
-                names.append(cur_name)
-            cur_name = None
-            cur_type = None
-            in_table_props = True
-            continue
-        if stripped.startswith('[') and stripped.endswith(']'):
-            in_table_props = False
-            continue
-        if not in_table_props:
-            continue
-        m = _TABLE_NAME_RE.match(line)
-        if m:
-            cur_name = m.group(1)
-            continue
-        m = _re_parse.match(r'^\s*type\s*=\s*(\S+)\s*$', line)
-        if m:
-            cur_type = m.group(1)
-    # End-of-file flush.
-    if (cur_type or '').lower() == 'scheme' and cur_name:
-        names.append(cur_name)
-    return names
-
-
 __all__ = [
     'parse_metadata_file',
     'MetadataTable',
-    'find_scheme_names',
 ]

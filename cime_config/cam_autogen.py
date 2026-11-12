@@ -18,6 +18,7 @@ import logging
 import shutil
 import filecmp
 import glob
+import re
 
 #pylint: disable=wrong-import-position
 
@@ -66,10 +67,6 @@ try:
     from ccpp_capgen import capgen
     from create_readnl_files import gen_namelist_files
     from framework_env import CCPPFrameworkEnv
-    #pylint: disable=redefined-outer-name
-    # pylint change because of doctest import below
-    from metadata_table import find_scheme_names
-    #pylint: enable=redefined-outer-name
     from parse_tools import read_xml_file
     ##XXgoldyXX: See note below about when these imports can be removed
     from ccpp_datafile import DatatableReport
@@ -279,7 +276,52 @@ def _find_schemes_in_sdf(suite_part):
     return scheme_list
 
 ###############################################################################
-def _find_metadata_files(source_dirs, scheme_finder):
+def _find_scheme_names(file_path: str) -> list:
+###############################################################################
+    """
+    Return the list of scheme names declared in ``file_path``
+    """
+    table_header = '[ccpp-table-properties]'
+    table_name_re = re.compile(r'^\s*name\s*=\s*(\S+)\s*$')
+    table_type_re = re.compile(r'^\s*type\s*=\s*(\S+)\s*$')
+    names = []
+    try:
+        with open(file_path, encoding='utf-8') as fh:
+            text = fh.read()
+    except (OSError, UnicodeDecodeError):
+        return names
+    cur_name = None
+    cur_type = None
+    in_table_props = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped == table_header:
+            if (cur_type or '').lower() == 'scheme' and cur_name:
+                names.append(cur_name)
+            cur_name = None
+            cur_type = None
+            in_table_props = True
+            continue
+        if stripped.startswith('[') and stripped.endswith(']'):
+            in_table_props = False
+            continue
+        if not in_table_props:
+            continue
+        m = table_name_re.match(line)
+        if m:
+            cur_name = m.group(1)
+            continue
+        m = table_type_re.match(line)
+        if m:
+            cur_type = m.group(1)
+    # End-of-file flush.
+    if (cur_type or '').lower() == 'scheme' and cur_name:
+        names.append(cur_name)
+    return names
+
+
+###############################################################################
+def _find_metadata_files(source_dirs):
 ###############################################################################
     """
     Find all the metadata files (with associated Fortran source) in
@@ -288,7 +330,6 @@ def _find_metadata_files(source_dirs, scheme_finder):
     metadata file containing that key scheme name, the associated Fortran
     file, and an associated XML namelist definition file (or None if no
     XML file is found).
-    <scheme_finder> is a function for finding schemes in a metadata file.
     """
 
     meta_files = {}
@@ -307,7 +348,7 @@ def _find_metadata_files(source_dirs, scheme_finder):
                                                                     base_name)
                         if source_file:
                             # Find all the schemes in the file
-                            schemes = scheme_finder(path)
+                            schemes = _find_scheme_names(path)
                             if (len(schemes) > 1) and xml_file:
                                 bad_xml_sources.append(xml_file)
                             # end if
@@ -535,7 +576,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     atm_schemes_path = os.path.join(atm_phys_top_dir, "schemes")
     atm_test_schemes_path = os.path.join(atm_phys_top_dir, "test", "test_schemes")
     source_search    = [source_mods_dir, atm_schemes_path, atm_test_schemes_path]
-    all_scheme_files = _find_metadata_files(source_search, find_scheme_names)
+    all_scheme_files = _find_metadata_files(source_search)
 
     # Find the SDFs specified for this model build
     sdfs = []

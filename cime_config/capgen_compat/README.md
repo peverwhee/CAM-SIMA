@@ -75,7 +75,6 @@ the import entirely in favour of CLI invocation.
 | `framework_env.py` | `CCPPFrameworkEnv` |
 | `ccpp_state_machine.py` | `CCPP_STATE_MACH` |
 | `parse_tools.py` | capgen's `metadata.parse_tools` symbols + `ParseObject` |
-| `metadata_table.py` | `parse_metadata_file`, `find_scheme_names`, `MetadataTable` (with monkey-patches — see below) |
 | `fortran_tools.py` | `FortranWriter` |
 | `var_props.py` | `is_horizontal_dimension`, `is_vertical_dimension`, the two dim-name lists |
 | `ddt_library.py` | `VarDDT` (the adapter's `_var_wrapper._VarDDT`) |
@@ -124,9 +123,6 @@ working:
   original-capgen's accessor API, so CAM-SIMA's direct
   `for var in section.variables` iteration paths in
   `generate_registry_data.py` keep working.
-* `find_scheme_names` — lightweight string scan (does not go through
-  capgen's strict parser, so namelist-reader pseudo-schemes are
-  enumerable for `_find_metadata_files`).
 
 ### Vendored utilities (~1010 LOC)
 
@@ -188,15 +184,15 @@ Each phase has a measurable LOC drop and a clearly-scoped CAM-SIMA
 deliverable.  They can land in any order, though the suggested order
 below minimises churn.
 
-| Phase | What CAM-SIMA does | What retires |
-|---|---|---|
-| **A** | Discover schemes via `ccpp_datafile.py --schemes datatable.xml` (CLI) instead of walking `.meta` files | `find_scheme_names` (~50 LOC of `metadata_table.py`) |
-| **B** | Rewrite `write_init_files.py` to consume `datatable.xml` only (no `cap_database` Python object).  Drop `FortranWriter` in the rewrite — use direct f-strings or a small in-tree emitter. | `_cap_database.py`, `_var_wrapper.py`, `_runner.py`, the `MetaVar` / `MetadataSection` monkey-patches, **`fortran_write.py`** if it was the last `FortranWriter` caller, and the `return_state=True` hook on `ccpp_capgen.capgen` (delete on the capgen side) |
-| **C** | Rewrite `generate_registry_data.py` to use capgen's CLI + a small Fortran emitter | rest of `metadata_table.py`'s parse-shim, **and `fortran_write.py`** if it had not already gone |
-| **D** | Rewrite `hist_config.py` (or its dependents) to use a stdlib / native config parser instead of `ParseObject` | `parse_object.py`, **`parse_source.py`** (no remaining importer), `parse_tools.py` shim |
-| **E** | Mechanical sweep: replace `from ccpp_capgen import …` / `from framework_env import …` / etc. with capgen's native paths, or remove them entirely if the CLI replaces them | Remaining flat-module shims |
-| **F** | Migrate on-disk metadata (`type = module` → `type = host`; drop `persistence = …`); migrate registry XML (`<file type="module">` → `<file type="host">`) | The parse-time rewriter dies (`_rewrite_module_to_host`, `_DROP_ATTRS`, `_backfill_module_name`) |
-| **G** | `rm -rf cime_config/capgen_compat/` + revert `sys.path` additions in `cam_autogen.py` + test scripts | Directory gone |
+| Phase | What CAM-SIMA does | What retires | Done? |
+|---|---|---|---|
+| **A** | Discover schemes via `ccpp_datafile.py --schemes datatable.xml` (CLI) instead of walking `.meta` files | `find_scheme_names` (~50 LOC of `metadata_table.py`) | Done - moved `find_scheme_names` to `cam_autogen.py` |
+| **B** | Rewrite `write_init_files.py` to consume `datatable.xml` only (no `cap_database` Python object).  Drop `FortranWriter` in the rewrite — use direct f-strings or a small in-tree emitter. | `_cap_database.py`, `_var_wrapper.py`, `_runner.py`, the `MetaVar` / `MetadataSection` monkey-patches, **`fortran_write.py`** if it was the last `FortranWriter` caller, and the `return_state=True` hook on `ccpp_capgen.capgen` (delete on the capgen side) |  |
+| **C** | Rewrite `generate_registry_data.py` to use capgen's CLI + a small Fortran emitter | rest of `metadata_table.py`'s parse-shim, **and `fortran_write.py`** if it had not already gone |  |
+| **D** | Rewrite `hist_config.py` (or its dependents) to use a stdlib / native config parser instead of `ParseObject` | `parse_object.py`, **`parse_source.py`** (no remaining importer), `parse_tools.py` shim |  |
+| **E** | Mechanical sweep: replace `from ccpp_capgen import …` / `from framework_env import …` / etc. with capgen's native paths, or remove them entirely if the CLI replaces them | Remaining flat-module shims |  |
+| **F** | Migrate on-disk metadata (`type = module` → `type = host`; drop `persistence = …`); migrate registry XML (`<file type="module">` → `<file type="host">`) | The parse-time rewriter dies (`_rewrite_module_to_host`, `_DROP_ATTRS`, `_backfill_module_name`) |  |
+| **G** | `rm -rf cime_config/capgen_compat/` + revert `sys.path` additions in `cam_autogen.py` + test scripts | Directory gone |  |
 
 ## Asks of capgen
 

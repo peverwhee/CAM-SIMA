@@ -71,7 +71,6 @@ from cam_autogen import generate_physics_suites, generate_init_routines
 
 #Import necessary CCPP framework functions:
 from parse_tools import read_xml_file
-from metadata_table import find_scheme_names
 
 # pylint: enable=wrong-import-position
 
@@ -397,7 +396,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
                             f'{self.test_src_mods_dir}'+os.sep+'temp_adjust.F90', None)}
 
         #Run function:
-        test_scheme_files = _find_metadata_files([self.test_src_mods_dir], find_scheme_names)
+        test_scheme_files = _find_metadata_files([self.test_src_mods_dir])
 
         #Check that the output dictionary matches what is expected:
         self.assertEqual(test_scheme_files, expected_schemes)
@@ -435,7 +434,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         #Expect "CamAutoGenError":
         with self.assertRaises(CamAutoGenError) as autoerr:
             #Run function:
-            _ = _find_metadata_files([self.test_src_mods_dir], find_scheme_names)
+            _ = _find_metadata_files([self.test_src_mods_dir])
         #End with
 
         #Check that error message matches what's expected:
@@ -479,7 +478,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         #Expect "CamAutoGenError":
         with self.assertRaises(CamAutoGenError) as autoerr:
             #Run function:
-            _ = _find_metadata_files([self.test_src_mods_dir], find_scheme_names)
+            _ = _find_metadata_files([self.test_src_mods_dir])
         #End with
 
         #Check that error message matches what's expected:
@@ -504,7 +503,7 @@ class CamAutoGenTestRoutine(unittest.TestCase):
         #Expect "CamAutoGenError":
         with self.assertRaises(CamAutoGenError) as autoerr:
             #Run function:
-            _ = _find_metadata_files([self.test_src_mods_dir], find_scheme_names)
+            _ = _find_metadata_files([self.test_src_mods_dir])
         #End with
 
         #Check that error message matches what's expected:
