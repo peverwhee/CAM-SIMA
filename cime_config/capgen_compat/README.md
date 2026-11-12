@@ -74,7 +74,7 @@ the import entirely in favour of CLI invocation.
 | `ccpp_capgen.py` | `capgen`, `CapDatabase` |
 | `framework_env.py` | `CCPPFrameworkEnv` |
 | `ccpp_state_machine.py` | `CCPP_STATE_MACH` |
-| `parse_tools.py` | capgen's `metadata.parse_tools` symbols + `ParseObject` |
+| `parse_tools.py` | capgen's `metadata.parse_tools` symbols |
 | `fortran_tools.py` | `FortranWriter` |
 | `var_props.py` | `is_horizontal_dimension`, `is_vertical_dimension`, the two dim-name lists |
 | `ddt_library.py` | `VarDDT` (the adapter's `_var_wrapper._VarDDT`) |
@@ -131,20 +131,13 @@ own scripts call into directly (NOT because capgen requires
 them — capgen has no use for any of them).  These exist
 because:
 
-* `hist_config.py` uses `ParseObject` to parse namelist-style
-  history configs.
 * `write_init_files.py` and `generate_registry_data.py` use
   `FortranWriter` to emit Fortran with managed indentation and
   line wrapping.
-* `parse_object.py` inherits from a richer `ParseContext` than
-  capgen exposes (writable `line_num`, region stack, etc.); the
-  vendored `parse_source.py` carries that fuller `ParseContext` plus
-  `ContextRegion` / `ParseContextError` / `ParseSource`.
 
 | File | What it carries |
 |---|---|
-| `parse_source.py` (409 LOC) | Original-capgen-style `ParseContext` (writable, with region stack); `ContextRegion`; `ParseContextError`; `ParseSource`; `context_string` and a few utility helpers.  `CCPPError` / `ParseSyntaxError` / `ParseInternalError` are re-exported from capgen (not vendored) so the exception identity is shared. |
-| `parse_object.py` (176 LOC) | `ParseObject` — line-buffered free-form config parser, backslash continuation. |
+| `parse_source.py` (409 LOC) | `CCPPError` / `ParseSyntaxError` / `ParseInternalError` are re-exported from capgen (not vendored) so the exception identity is shared. |
 | `fortran_write.py` (436 LOC) | `FortranWriter` — managed Fortran output with indentation, 132-column wrapping, comment formatting. |
 
 These look stable but are not "permanent infrastructure" — they
@@ -189,7 +182,7 @@ below minimises churn.
 | **A** | Discover schemes via `ccpp_datafile.py --schemes datatable.xml` (CLI) instead of walking `.meta` files | `find_scheme_names` (~50 LOC of `metadata_table.py`) | Done - moved `find_scheme_names` to `cam_autogen.py` |
 | **B** | Rewrite `write_init_files.py` to consume `datatable.xml` only (no `cap_database` Python object).  Drop `FortranWriter` in the rewrite — use direct f-strings or a small in-tree emitter. | `_cap_database.py`, `_var_wrapper.py`, `_runner.py`, the `MetaVar` / `MetadataSection` monkey-patches, **`fortran_write.py`** if it was the last `FortranWriter` caller, and the `return_state=True` hook on `ccpp_capgen.capgen` (delete on the capgen side) |  |
 | **C** | Rewrite `generate_registry_data.py` to use capgen's CLI + a small Fortran emitter | rest of `metadata_table.py`'s parse-shim, **and `fortran_write.py`** if it had not already gone |  |
-| **D** | Rewrite `hist_config.py` (or its dependents) to use a stdlib / native config parser instead of `ParseObject` | `parse_object.py`, **`parse_source.py`** (no remaining importer), `parse_tools.py` shim |  |
+| **D** | Rewrite `hist_config.py` (or its dependents) to use a stdlib / native config parser instead of `ParseObject` | `parse_object.py`, **`parse_source.py`** (no remaining importer), `parse_tools.py` shim | Done - created smaller version of `ParseObject` in `hist_config` |
 | **E** | Mechanical sweep: replace `from ccpp_capgen import …` / `from framework_env import …` / etc. with capgen's native paths, or remove them entirely if the CLI replaces them | Remaining flat-module shims |  |
 | **F** | Migrate on-disk metadata (`type = module` → `type = host`; drop `persistence = …`); migrate registry XML (`<file type="module">` → `<file type="host">`) | The parse-time rewriter dies (`_rewrite_module_to_host`, `_DROP_ATTRS`, `_backfill_module_name`) |  |
 | **G** | `rm -rf cime_config/capgen_compat/` + revert `sys.path` additions in `cam_autogen.py` + test scripts | Directory gone |  |

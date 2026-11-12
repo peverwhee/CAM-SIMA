@@ -33,29 +33,8 @@ class TestParseToolsShim(unittest.TestCase):
         import parse_tools as pt
         for name in ('validate_xml_file', 'read_xml_file',
                      'find_schema_file', 'find_schema_version',
-                     'init_log', 'CCPPError', 'ParseInternalError',
-                     'ParseObject', 'context_string'):
+                     'init_log', 'CCPPError', 'ParseInternalError'):
             self.assertTrue(hasattr(pt, name))
-
-    def test_parse_object_basic_construction(self):
-        """``ParseObject`` is now vendored from original capgen (no
-        longer a stub).  Verify construction with the original
-        signature works and ``filename`` round-trips."""
-        import parse_tools as pt
-        obj = pt.ParseObject('test.F90', ['line1', 'line2'])
-        self.assertEqual(obj.filename, 'test.F90')
-
-    def test_parse_object_curr_line(self):
-        """``.curr_line()`` returns ``(line, line_num)`` from the buffer.
-        Smoke-tests ParseObject's advancing line_num.  ParseObject is
-        vendored from original capgen because capgen-ng ships none — its
-        ParseContext is a minimal position record, not a parser."""
-        import parse_tools as pt
-        obj = pt.ParseObject('foobar.F90',
-                             ['first line', '## hi mom'],
-                             line_start=1)
-        line, _ = obj.curr_line()
-        self.assertEqual(line, '## hi mom')
 
 
 class TestMetadataTableShim(unittest.TestCase):
@@ -63,7 +42,6 @@ class TestMetadataTableShim(unittest.TestCase):
     def test_imports(self):
         import metadata_table as mt
         self.assertTrue(hasattr(mt, 'parse_metadata_file'))
-        self.assertTrue(hasattr(mt, 'find_scheme_names'))
         self.assertTrue(hasattr(mt, 'MetadataTable'))
 
 

@@ -24,11 +24,6 @@ if __CCPPSCRIPTS not in sys.path:
     sys.path.append(__CCPPSCRIPTS)
 # end if
 
-# CCPP framework imports
-# pylint: disable=wrong-import-position
-from parse_tools import ParseObject, context_string, ParseInternalError
-# pylint: enable=wrong-import-position
-
 ## Default filename specifications for different history types
 # Filename specifiers for history, initial files and restart history files
 #  %c = caseid,
@@ -68,6 +63,88 @@ class HistoryConfigError(ValueError):
         """Initialize this exception"""
         logging.shutdown()
         super().__init__(message)
+
+##############################################################################
+class HistoryParseObject():
+
+    _max_errors = 32
+
+    def __init__(self, filename, lines_in, line_start=0):
+        self.__lines = lines_in
+        self.__line_next = line_start
+        self.__num_lines = len(self.__lines)
+        self.__error_message = ""
+        self.__num_errors = 0
+        self.filename = filename
+        self.line_num = line_start
+
+    @property
+    def error_message(self):
+        """Return this object's error message"""
+        return self.__error_message
+
+    def context(self):
+      return f", at {self.filename}:{self.line_num + 1}"
+
+    def valid_line(self):
+        """Return True if the current line is valid"""
+        return (self.line_num >= 0) and (self.line_num < self.__num_lines)
+
+    def curr_line(self):
+        """Return the current line (if valid) and the current line number.
+        If the current line is invalid, return None"""
+        valid_line = self.valid_line()
+        _curr_line = None
+        _my_curr_lineno = self.line_num
+        if valid_line:
+            _curr_line = self.__lines[self.line_num].rstrip()
+            self.__line_next = self.line_num + 1
+            self.__line_end = self.__line_next
+        # end if
+        # We allow continuation self.__lines (ending with a single backslash)
+        if valid_line and _curr_line.endswith('\\'):
+            next_line, _ = self.next_line()
+            if next_line is None:
+                # We ran out of lines, just strip the backslash
+                _curr_line = _curr_line[0:len(_curr_line)-1]
+            else:
+                _curr_line = _curr_line[0:len(_curr_line)-1] + next_line
+            # end if
+        # end if
+        # curr_line should not change the line number
+        self.line_num = _my_curr_lineno
+        return _curr_line, self.line_num
+
+    def next_line(self):
+        """Return the next line in our file (if valid) and the next line's
+        line number. If the next line is not valid, return None"""
+        self.line_num = self.__line_next
+        return self.curr_line()
+
+    def add_syntax_err(self, token_type, token=None):
+        """Add a ParseSyntaxError-type message to this object's error
+        log, separating it from any previous messages with a newline."""
+        if self.__error_message:
+            if self.__num_errors == self._max_errors:
+                self.__error_message += '\nMaximum number of errors exceeded'
+                self.line_num = self.__num_lines # Intentionally walk off end
+                self.__line_next = self.line_num
+            elif self.__num_errors > self._max_errors:
+                # Oops, something went wrong, panic!
+                raise ValueError(self.error_message)
+            # end if
+            self.__error_message += '\n'
+        # end if
+        if self.__num_errors < self._max_errors:
+            if token is None:
+                self.__error_message += f"{token_type}{self.context()}"
+            else:
+                self.__error_message += f"Invalid {token_type}, '{token}'{self.context()}"
+            # end if
+        # end if
+        self.__num_errors += 1
+
+##############################################################################
 
 ##############################################################################
 def _blank_config_line(line):
@@ -354,7 +431,7 @@ class HistFieldList():
         """Add field name, <item> to this object and return True if this
            field name was added.
         <item> is a single item to be added.
-        <pobj> is the ParseObject source of <items>.
+        <pobj> is the HistoryParseObject source of <items>.
         <full_field_list> is the list of all fields for this volume
         """
         if not _is_string(item)[0]:
@@ -366,12 +443,12 @@ class HistFieldList():
             if item in field_list.__field_names:
                 if self == field_list:
                     # Field is a duplicate, same flag (so this is just a warning)
-                    ctx = context_string(pobj)
+                    ctx = pobj.context()
                     logger.warning(f"Field, '{item}' already in {self.desc} fields for hist volume, {self.volume}{ctx}")
                     return False
                 else:
                     # Field is a duplicate, different flag (this is an error)
-                    ctx = context_string(pobj)
+                    ctx = pobj.context()
                     emsg = f"Field, '{item}' already in {field_list.desc} fields for hist volume, {self.volume}. Cannot also add to {self.desc} fields for the same volume{ctx}"
                     pobj.add_syntax_err(emsg)
                     return False
@@ -381,7 +458,7 @@ class HistFieldList():
         self.__field_names.append(item)
         self.__max_namelen = max(len(item), self.__max_namelen)
         if logger.getEffectiveLevel() <= logging.DEBUG:
-            ctx = context_string(pobj)
+            ctx = pobj.context()
             logger.debug(f"Added {self.desc} field, '{item}' to hist volume, {self.volume}{ctx}")
         # end if
         return True
@@ -389,7 +466,7 @@ class HistFieldList():
     def add_fields(self, items, pobj, full_field_list, logger):
         """Add <items> to this object and return True if all items were added.
         <items> can be a single item or a list.
-        <pobj> is the ParseObject source of <items>
+        <pobj> is the HistoryParseObject source of <items>
         <full_field_list> is the list of all fields for this volume
         """
         if isinstance(items, list):
@@ -414,7 +491,7 @@ class HistFieldList():
             # end if
         # end for
         if logger.getEffectiveLevel() <= logging.DEBUG:
-            ctx = context_string(pobj)
+            ctx = pobj.context()
             for field_name in removed_fields:
                 errmsg = f"Removed field, '{field_name}' from {self.desc} fields on hist volume, {self.volume}{ctx}"
                 logger.debug(errmsg)
@@ -694,8 +771,8 @@ class HistoryVolConfig():
         if fields_to_delete != fields_deleted:
             all_removed = False
             missing_fields = fields_to_delete.difference(fields_deleted)
-            ctx = context_string(pobj)
             missing_fields_string = ", ".join(missing_fields)
+            ctx = pobj.context()
             errmsg = f"Cannot remove field(s), '{missing_fields_string}', not found on hist volume, {self.volume}{ctx}"
             logger.warning(errmsg)
         # end if
@@ -745,7 +822,7 @@ class HistoryVolConfig():
             self.__precision = prec.upper()
             self.__precision_set = True
             if logger.getEffectiveLevel() <= logging.DEBUG:
-                ctx = context_string(pobj)
+                ctx = pobj.context()
                 logger.debug(f"Setting precision to '{prec}'{ctx}")
             # end if
             return True
@@ -774,7 +851,7 @@ class HistoryVolConfig():
             self.__max_frames = nframes_i
             self.__max_frames_set = True
             if logger.getEffectiveLevel() <= logging.DEBUG:
-                ctx = context_string(pobj)
+                ctx = pobj.context()
                 logger.debug(f"Setting max frames to '{nframes}'{ctx}")
             # end if
             return True
@@ -797,7 +874,7 @@ class HistoryVolConfig():
             return False
         # end if
         if logger.getEffectiveLevel() <= logging.DEBUG:
-            ctx = context_string(pobj)
+            ctx = pobj.context()
             logger.debug(f"Setting write_nstep0 to '{self.__write_nstep0}'{ctx}")
         # end if
         return True
@@ -833,7 +910,7 @@ class HistoryVolConfig():
         if self.__out_frequency_is_valid(ofreq):
             self.__output_freq = ofreq
             if logger.getEffectiveLevel() <= logging.DEBUG:
-                ctx = context_string(pobj)
+                ctx = pobj.context()
                 logger.debug(f"Setting output_frequency to '{ofreq}'{ctx}")
             # end if
             # Convert accumulated fields to instantaneous fields if we're set
@@ -870,7 +947,7 @@ class HistoryVolConfig():
             self.__precision = 'REAL64'
         # end if
         if (logger is not None) and (logger.getEffectiveLevel() <= logging.DEBUG):
-            ctx = context_string(pobj)
+            ctx = pobj.context()
             logger.debug(f"Setting file type to '{ftype}'{ctx}")
         # end if
         return True
@@ -893,7 +970,7 @@ class HistoryVolConfig():
             # end if
         # end if
         if logger.getEffectiveLevel() <= logging.DEBUG:
-            ctx = context_string(pobj)
+            ctx = pobj.context()
             logger.debug(f"Setting filename spec to '{fnspec}'{ctx}")
         # end if
 
@@ -914,7 +991,7 @@ class HistoryVolConfig():
         self.__restart_fname_spec = rfnspec
         self.__restart_fname_spec_set = True
         if logger.getEffectiveLevel() <= logging.DEBUG:
-            ctx = context_string(pobj)
+            ctx = pobj.context()
             logger.debug(f"Setting restart filename spec to '{rfnspec}'{ctx}")
         # end if
         return True
@@ -935,7 +1012,7 @@ class HistoryVolConfig():
         elif fld_type == 'all':
             num_flds = sum([x.num_fields() for x in self.__all_fields])
         else:
-            raise ParseInternalError(f"Unknown fld_type, '{fld_type}'")
+            raise HistoryConfigError(f"Unknown fld_type, '{fld_type}'")
         # end if
         return num_flds
 
@@ -1014,7 +1091,7 @@ class HistoryConfig(dict):
         """
         if filename:
             if not logger:
-                raise ParseInternalError("Logger required to parse file")
+                raise HistoryConfigError("Logger required to parse file")
             # end if
             self.parse_hist_config_file(filename, logger)
         # end if (no else, just leave empty dictionary)
@@ -1038,7 +1115,7 @@ class HistoryConfig(dict):
             clines = [line.strip() for line in cfile.readlines()]
         # end with
         # create a parse object and context for this file
-        pobj = ParseObject(filename, clines)
+        pobj = HistoryParseObject(filename, clines)
         curr_line, _ = pobj.curr_line()
         while pobj.valid_line():
             args = _parse_hist_config_line(curr_line,
@@ -1058,9 +1135,9 @@ class HistoryConfig(dict):
                 elif volume:
                     if volume not in self:
                         # Someone made a boo boo
-                        ctx = context_string(pobj)
+                        ctx = pobj.context()
                         emsg = f"volume, '{volume}', not in configs{ctx}"
-                        raise ParseInternalError(emsg)
+                        raise HistoryConfigError(emsg)
                     # end if
                     hist_config = self[volume]
                     fnum = volume
@@ -1079,9 +1156,9 @@ class HistoryConfig(dict):
             else:
                 if (not no_comm_ok) and (not _blank_config_line(curr_line)):
                     # Something has gone wrong.
-                    ctx = context_string(pobj)
+                    ctx = pobj.context()
                     emsg = f"Bad line but no error{ctx}"
-                    raise ParseInternalError(emsg)
+                    raise HistoryConfigError(emsg)
                 # end if
             # end if
             if hist_config:
@@ -1100,7 +1177,7 @@ class HistoryConfig(dict):
                         logger.debug(lmsg)
                         self.parse_hist_config_file(dfile, logger, volume=fnum)
                     else:
-                        ctx = context_string(pobj)
+                        ctx = pobj.context()
                         emsg = f"History config file, '{cmd_val}', not found{ctx}"
                         raise HistoryConfigError(emsg)
                     # end if
