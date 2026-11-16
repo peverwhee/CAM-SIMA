@@ -76,7 +76,6 @@ the import entirely in favour of CLI invocation.
 | `ccpp_state_machine.py` | `CCPP_STATE_MACH` |
 | `parse_tools.py` | capgen's `metadata.parse_tools` symbols |
 | `fortran_tools.py` | `FortranWriter` |
-| `var_props.py` | `is_horizontal_dimension`, `is_vertical_dimension`, the two dim-name lists |
 | `ddt_library.py` | `VarDDT` (the adapter's `_var_wrapper._VarDDT`) |
 
 ### CapDatabase adapter (~850 LOC)

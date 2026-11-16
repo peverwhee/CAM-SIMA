@@ -14,7 +14,6 @@ import os.path
 from ccpp_state_machine import CCPP_STATE_MACH
 from ddt_library import VarDDT
 from sima_fortran_writer import SimaFortranWriter
-from var_props import is_horizontal_dimension, is_vertical_dimension
 
 # Exclude these standard names from init processing
 # Some are internal names (e.g., suite_name)
@@ -48,6 +47,26 @@ _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
 # Line lengths for generated Fortran (Fortitude limit is 132)
 _LINE_FILL_LEN = 100
 _MAX_LINE_LEN = 132
+
+# Supported horizontal dimensions
+CCPP_HORIZONTAL_DIMENSIONS = [
+    'ccpp_constant_one:horizontal_dimension',
+    'ccpp_constant_one:horizontal_loop_extent',
+    'horizontal_loop_begin:horizontal_loop_end',
+    'horizontal_dimension',
+    'horizontal_loop_extent',
+]
+
+
+# Supported vertical dimensions
+CCPP_VERTICAL_DIMENSIONS = [
+    'ccpp_constant_one:vertical_layer_dimension',
+    'ccpp_constant_one:vertical_interface_dimension',
+    'vertical_layer_dimension',
+    'vertical_interface_dimension',
+    'vertical_layer_index',
+    'vertical_interface_index',
+]
 
 ##############
 #Main function
@@ -1723,6 +1742,41 @@ def write_set_before_use_function(outfile, set_before_use):
     outfile.write("end function suite_sets_before_use", 1)
 
     # ----------------------------
+
+#####
+
+def is_horizontal_dimension(dim_name: str) -> bool:
+    """Return True iff *dim_name* is a recognised horizontal dimension.
+
+    Examples
+    --------
+    >>> is_horizontal_dimension('horizontal_loop_extent')
+    True
+    >>> is_horizontal_dimension('ccpp_constant_one:horizontal_dimension')
+    True
+    >>> is_horizontal_dimension('horizontal_loop_begin:horizontal_loop_end')
+    True
+    >>> is_horizontal_dimension('ccpp_constant_one')
+    False
+    """
+    return dim_name in CCPP_HORIZONTAL_DIMENSIONS
+
+
+def is_vertical_dimension(dim_name: str) -> bool:
+    """Return True iff *dim_name* is a recognised vertical dimension.
+
+    Examples
+    --------
+    >>> is_vertical_dimension('ccpp_constant_one:vertical_layer_dimension')
+    True
+    >>> is_vertical_dimension('vertical_layer_index')
+    True
+    >>> is_vertical_dimension('ccpp_constant_one:vertical_layer_index')
+    False
+    >>> is_vertical_dimension('horizontal_loop_extent')
+    False
+    """
+    return dim_name in CCPP_VERTICAL_DIMENSIONS
 
 #############
 # End of file
