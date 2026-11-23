@@ -896,7 +896,7 @@ class ConfigCAM:
                                           self.__atm_root, self.__bldroot,
                                           reg_dir, reg_files, source_mods_dir,
                                           self.__gpu_flag, force_ccpp)
-        phys_dirs, force_init, _, nml_fils, capgen_db, scheme_names = retvals
+        phys_dirs, force_init, cap_datafile, nml_fils, scheme_names = retvals
 
         # Add namelist definition files to dictionary:
         for nml_fil in nml_fils:
@@ -915,7 +915,7 @@ class ConfigCAM:
         init_dir = generate_init_routines(build_cache, self.__bldroot,
                                           force_ccpp, force_init,
                                           source_mods_dir, gen_fort_indent,
-                                          capgen_db, ic_names, registry_constituents,
+                                          cap_datafile, ic_names, registry_constituents,
                                           vars_init_value)
 
         #Add registry path to config object:

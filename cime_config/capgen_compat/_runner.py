@@ -1,8 +1,7 @@
-"""``capgen(run_env, return_db=True)`` entry point.
+"""``capgen(run_env)`` entry point.
 
-Translates a :class:`CCPPFrameworkEnv` into capgen's keyword API,
-runs the generator with ``return_state=True``, and wraps the resolved
-state in a :class:`CapDatabase` facade.
+Translates a :class:`CCPPFrameworkEnv` into capgen's keyword API and
+runs the generator.
 
 Capgen options with no equivalent in :class:`CCPPFrameworkEnv` are
 ignored with a debug log:
@@ -22,8 +21,6 @@ import logging
 import os
 import sys
 from typing import Dict, Tuple
-
-from _cap_database import CapDatabase
 
 
 # Cached handle to the *real* next-generation capgen module.  See
@@ -106,20 +103,12 @@ def _translate_kind_types(value) -> Dict[str, Tuple[str, str]]:
     return out
 
 
-def capgen(run_env, return_db: bool = False):
+def capgen(run_env):
     """Original-capgen-shaped capgen entry.
 
     Parameters
     ----------
     run_env : CCPPFrameworkEnv
-    return_db : bool, optional
-        When ``True``, return a :class:`CapDatabase` after generating
-        the caps; when ``False`` (the original-capgen default), run
-        the generation side-effects only and return ``None``.
-
-    Returns
-    -------
-    CapDatabase or None
 
     Raises
     ------
@@ -179,18 +168,14 @@ def capgen(run_env, return_db: bool = False):
     # capgen already produced (``datatable.xml``), this is a no-op.
     requested_datafile = getattr(run_env, 'ccpp_datafile', None)
 
-    cn_kwargs['return_state'] = True
     cn_kwargs['logger'] = logger
 
     # Pre-scan every host/scheme .meta file for the
     # ``# capgen_compat:original_type = module`` marker so
     # ``MODULE_ORIGIN_TABLE_NAMES`` is populated before
-    # capgen's internal parse runs.  ``_VarWrapper.from_host_entry``
-    # consults that set to decide ``source.ptype``.  Without the
-    # pre-scan, registry-generated module vars get tagged
-    # ``ptype = 'host'`` and write_init_files's
-    # ``ptype != 'host'`` filter excludes them, producing an empty
-    # ``phys_var_stdnames`` list.
+    # capgen's internal parse runs.  ``write_init_files._passed_by_host``
+    # consults that set; without it, registry module vars are treated
+    # as host-passed and ``phys_var_stdnames`` comes out empty.
     from metadata_table import _scan_module_origin_tables, MODULE_ORIGIN_TABLE_NAMES
     for path in (cn_kwargs.get('host_files', []) or []) + \
                 (cn_kwargs.get('scheme_files', []) or []):
@@ -211,15 +196,11 @@ def capgen(run_env, return_db: bool = False):
         from metadata import auto_clone_constituents
         auto_clone_constituents.enable(logger)
 
-    host_dict, suite_resolutions = _capgen(**cn_kwargs)
+    _capgen(**cn_kwargs)
 
     if requested_datafile:
         _rename_datatable(cn_kwargs['output_root'],
                           requested_datafile, logger)
-
-    if not return_db:
-        return None
-    return CapDatabase(host_dict, suite_resolutions)
 
 
 def _rename_datatable(output_root, requested_path, logger):

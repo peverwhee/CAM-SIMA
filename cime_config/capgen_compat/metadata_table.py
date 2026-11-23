@@ -84,11 +84,10 @@ if not hasattr(MetaVar, 'get_prop_value'):
 # ----------------------------------------------------------------------
 # Additional original-capgen-style methods on MetaVar.
 #
-# CAM-SIMA's ``generate_registry_data.py`` and ``write_init_files.py``
-# iterate ``MetadataSection.variables`` directly and call original
-# capgen's per-Var methods on each entry.  ``_VarWrapper`` covers the
-# same surface for the wrapped CapDatabase path; here we monkey-patch
-# the bare ``MetaVar`` class so the raw-iteration path works too.
+# CAM-SIMA's ``generate_registry_data.py`` iterates
+# ``MetadataSection.variables`` directly and calls original capgen's
+# per-Var methods on each entry, so we monkey-patch the bare
+# ``MetaVar`` class.
 # ----------------------------------------------------------------------
 
 import re as _re
@@ -153,9 +152,7 @@ def _metavar_intrinsic_elements(self):
     Returns ``None`` (not ``[]``) for plain vars; CAM-SIMA's
     ``write_init_files.py`` distinguishes via
     ``isinstance(ielem, list)``.  Capgen does not currently expose
-    array-of-DDT decomposition on bare MetaVar; the only path that
-    needs it goes through CapDatabase's host_dict facade
-    (which delegates to ``_VarWrapper.intrinsic_elements``).
+    array-of-DDT decomposition on bare MetaVar.
     """
     return None
 
@@ -291,10 +288,10 @@ _DROP_ATTR_RE = _re_parse.compile(
 
 
 # Module-level set of table names whose source metadata carried the
-# original-capgen ``type = module`` spelling.  ``_var_wrapper`` reads
-# this to classify the source variables as ``ptype = 'module'``
-# (matches original capgen's behaviour) rather than the default
-# ``ptype = 'host'``.  Populated incrementally by every call to
+# original-capgen ``type = module`` spelling.
+# ``write_init_files._passed_by_host`` reads this to tell registry
+# module variables from host-passed ones.  Populated incrementally by
+# every call to
 # :func:`parse_metadata_file` (and by the pre-scan in
 # ``_runner.capgen``).
 MODULE_ORIGIN_TABLE_NAMES = set()

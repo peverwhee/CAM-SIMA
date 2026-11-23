@@ -26,8 +26,7 @@ _CIME_CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 _CAM_ROOT_DIR = os.path.dirname(_CIME_CONFIG_DIR)
 _REG_GEN_DIR = os.path.abspath(os.path.join(_CAM_ROOT_DIR, "src", "data"))
 # capgen compatibility layer: holds the flat ``ccpp_capgen`` /
-# ``parse_tools`` / ``metadata_table`` / ``framework_env`` /
-# ``ccpp_state_machine`` / ``fortran_tools`` shims that adapt
+# ``metadata_table`` / ``framework_env`` shims that adapt
 # capgen to CAM-SIMA's original-capgen import surface.  See
 # cime_config/capgen_compat/README.md for the contract and removal
 # procedure.
@@ -730,9 +729,7 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
                                    force_overwrite=False,
                                    output_root=genccpp_dir,
                                    ccpp_datafile=cap_output_file)
-        capgen_db = capgen(run_env, return_db=True)
-    else:
-        capgen_db = None
+        capgen(run_env)
     # end if
 
     # Several SIMA dycores need some of the physics schemes
@@ -834,12 +831,12 @@ def generate_physics_suites(build_cache, preproc_defs, host_name,
     # End if
 
     return [physics_blddir, genccpp_dir], do_gen_ccpp, cap_output_file,       \
-        xml_files.values(), capgen_db, scheme_names
+        xml_files.values(), scheme_names
 
 ###############################################################################
 def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
                            source_mods_dir, gen_fort_indent,
-                           cap_database, ic_names, registry_constituents,
+                           cap_datafile, ic_names, registry_constituents,
                            vars_init_value):
 ###############################################################################
     """
@@ -878,7 +875,7 @@ def generate_init_routines(build_cache, bldroot, force_ccpp, force_init,
         #   within write_init_files (so that write_init_files can be the place
         #   where the source include files are stored).
         source_paths = [source_mods_dir, _REG_GEN_DIR]
-        retmsg = write_init_files(cap_database, ic_names, registry_constituents, vars_init_value,
+        retmsg = write_init_files(cap_datafile, ic_names, registry_constituents, vars_init_value,
                                   init_dir, _find_file, source_paths,
                                   gen_fort_indent, _LOGGER)
 

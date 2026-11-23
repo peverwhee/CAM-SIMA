@@ -11,8 +11,7 @@ from collections import OrderedDict
 import os.path
 
 # CCPP Framework import statements
-from ccpp_state_machine import CCPP_STATE_MACH
-from ddt_library import VarDDT
+from ccpp_datafile import DatatableReport, datatable_report
 from sima_fortran_writer import SimaFortranWriter
 
 # Exclude these standard names from init processing
@@ -37,7 +36,7 @@ _OUTPUT_TYPES = set(['out', 'inout'])
 # CCPP phases that run before the host calls physics_read_data (the host
 # calls it after the initialize phase and before timestep_initial), see
 # gather_set_before_use_vars:
-_PRE_READ_PHASES = {'register', 'initialize'}
+_PRE_READ_PHASES = {'register', 'init'}
 
 # Include files to insert in the module preamble
 _PHYS_VARS_PREAMBLE_INCS = ["cam_var_init_marks_decl.inc"]
@@ -47,6 +46,16 @@ _PHYS_VARS_BODY_INCS = ["cam_var_init_marks.inc"]
 # Line lengths for generated Fortran (Fortitude limit is 132)
 _LINE_FILL_LEN = 100
 _MAX_LINE_LEN = 132
+
+_HOST_ATTRS = ('local_name', 'module', 'access_path', 'type',
+               'dimensions', 'local_subscript', 'protected')
+
+# Order in which CCPP phases run
+_PHASE_ORDER = ('register', 'init', 'timestep_init', 'run',
+                'timestep_final', 'final')
+
+_HORIZONTAL_DIMS = {'horizontal_dimension', 'horizontal_loop_extent'}
+_VERTICAL_DIMS = {'vertical_layer_dimension', 'vertical_interface_dimension'}
 
 # Supported horizontal dimensions
 CCPP_HORIZONTAL_DIMENSIONS = [
@@ -68,11 +77,13 @@ CCPP_VERTICAL_DIMENSIONS = [
     'vertical_interface_index',
 ]
 
+_FORTRAN_INTRINSICS = {'integer', 'real', 'logical', 'complex', 'character'}
+
 ##############
 #Main function
 ##############
 
-def write_init_files(cap_database, ic_names, registry_constituents, vars_init_value,
+def write_init_files(datatable, ic_names, registry_constituents, vars_init_value,
                      outdir, file_find_func, source_paths, indent, logger,
                      phys_check_filename=None, phys_input_filename=None):
 
@@ -162,9 +173,15 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
     #Initialize return message:
     retmsg = ""
 
+    # Read the datatable.xml
+    host_dict = _read_host_dict(datatable)
+    suites = {s: _read_suite(datatable, s)
+              for s in _report(datatable, 'suite_list')}
+
     # Gather all the host model variables that are required by
     #    any of the compiled CCPP physics suites.
-    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(cap_database)
+    in_vars, out_vars, constituent_set, retmsg = gather_ccpp_req_vars(host_dict,
+                                                                      suites)
 
     # Quit now if there are missing variables
     if retmsg:
@@ -206,9 +223,13 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
             outfile.include(filepath)
         # end for
 
-        all_req_vars = in_vars + out_vars
         # Remove duplicates but preserve order for testing
-        unique_req_vars = list(OrderedDict.fromkeys(all_req_vars))
+        unique_req_vars = []
+        for hvar in in_vars + out_vars:
+            if hvar not in unique_req_vars:
+                unique_req_vars.append(hvar)
+            # end if
+        # end for
 
         # Write public parameters:
         retvals = write_ic_params(outfile, unique_req_vars, ic_names, registry_constituents)
@@ -268,12 +289,9 @@ def write_init_files(cap_database, ic_names, registry_constituents, vars_init_va
         outfile.end_module_header()
         outfile.blank_line()
 
-        # Grab the host dictionary from the database
-        host_dict = cap_database.host_model_dict()
-
         # Gather, per suite, the input variables that the suite sets
         #    before any of its schemes reads them:
-        set_before_use = gather_set_before_use_vars(cap_database, in_vars,
+        set_before_use = gather_set_before_use_vars(suites, in_vars,
                                                     constituent_set)
 
         # Collect imported host variables for physics read
@@ -323,48 +341,31 @@ class CamInitWriteError(ValueError):
 def _find_and_add_host_variable(stdname, host_dict, var_dict):
     """Find <stdname> in <host_dict> and add it to <var_dict> if found and
           not of type, 'host'.
-       If not found, add <stdname> to <missing_vars>.
-       If found and added to <var_dict>, also process the standard names of
-          any intrinsic sub-elements of <stdname>.
-       Return the list of <missing_vars> (if any).
+       Return [<stdname>] if not found, otherwise [].
        Note: This function has a side effect (adding to <var_dict>).
     """
-    missing_vars = []
-    hvar = host_dict.find_variable(stdname)
-    if hvar and hvar.is_ddt() and not isinstance(hvar, VarDDT):
-        # A whole-DDT host variable (e.g. a scheme argument of DDT type;
-        # a VarDDT is instead a field *inside* a DDT and is handled below)
-        # cannot be read from initial-conditions files; the host model
-        # initializes it at run time and marks it via mark_as_initialized.
-        # Exclude it from generated read/check code. (Var.intrinsic_elements
-        # would also raise an error for a DDT variable when called
-        # without a DDT library, as done below.)
-        return missing_vars
-    if hvar and (hvar.source.ptype != 'host'):
-        var_dict[stdname] = hvar
-        # Process elements (if any)
-        ielem = hvar.intrinsic_elements()
-        # List elements are the only ones we care about
-        if isinstance(ielem, list):
-            for sname in ielem:
-                smissing = _find_and_add_host_variable(sname, host_dict,
-                                                       var_dict)
-                missing_vars.extend(smissing)
-            # end for
-        # end if
-    # end if
+    hvar = host_dict.get(stdname.lower())
     if not hvar:
-        missing_vars.append(stdname)
+        return [stdname]
     # end if
-    return missing_vars
+    if _is_ddt(hvar):
+        # A whole-DDT variable can't be read from an IC file; the host
+        # initializes it at run time, so we can skip it
+        return []
+    # end if
+    if not _passed_by_host(hvar):
+        var_dict[stdname] = hvar
+    # end if
+    return []
 
 ##############################################################################
-def gather_ccpp_req_vars(cap_database):
+def gather_ccpp_req_vars(host_dict, suites):
     """
     Generate a list of host-model and constituent variables
     required by the CCPP physics suites potentially being used
     in this model run.
-    <cap_database> is the database object returned by capgen.
+    <host_dict> and <suites> are read from the capgen datatable
+       (see _read_host_dict and _read_suite).
     It is an error if any physics suite variable is not accessible in
        the host model.
     Return several values:
@@ -379,44 +380,61 @@ def gather_ccpp_req_vars(cap_database):
     missing_vars = set()
     constituent_vars = set()
     retmsg = ""
-    # Host model dictionary
-    host_dict = cap_database.host_model_dict()
 
-    # Create CCPP datatable required variables-listing object:
-    # XXgoldyXX: Choose only some phases here?
-    for phase in CCPP_STATE_MACH.transitions():
-        for cvar in cap_database.call_list(phase).variable_list():
-            stdname = cvar.get_prop_value('standard_name')
-            intent = cvar.get_prop_value('intent')
-            is_const = cvar.get_prop_value('advected') or cvar.get_prop_value('constituent')
-            if ((intent in _INPUT_TYPES) and
-                (stdname not in in_vars) and
-                (stdname not in _EXCLUDED_STDNAMES)):
-                if is_const:
-                    constituent_vars.add(stdname)
-                    # Do not add advected constituents to the host variable
-                    # list so they are not included in phys_var_stdnames and
-                    # can be read in the constituent path:
-                    if not cvar.get_prop_value('advected'):
-                        in_vars[stdname] = cvar
+    for phase in _PHASE_ORDER:
+        dim_names = []
+        for suite in suites.values():
+            for call in suite['call_sequence']:
+                if call['phase'] != phase:
+                    continue
+                # end if
+                stdname = call['standard_name']
+                intent = call['intent']
+                # Suite-owned variables are internal to the suite
+                if stdname in suite['suite_variables']:
+                    continue
+                # end if
+                _add_dimension_names(stdname, host_dict, dim_names)
+                is_advected = stdname in suite['advected']
+                is_const = is_advected or (stdname in suite['constituents'])
+                if ((intent in _INPUT_TYPES) and
+                    (stdname not in in_vars) and
+                    (stdname not in _EXCLUDED_STDNAMES)):
+                    if is_const:
+                        constituent_vars.add(stdname)
+                        # Do not add advected constituents to the host variable
+                        # list so they are not included in phys_var_stdnames and
+                        # can be read in the constituent path:
+                        if not is_advected:
+                            in_vars[stdname] = {'standard_name': stdname,
+                                                'local_name': call['local_name'],
+                                                'dimensions': [],
+                                                'protected': False}
+                        # end if
+                    else:
+                        # We need to work with the host model version of this variable
+                        missing = _find_and_add_host_variable(stdname, host_dict,
+                                                              in_vars)
+                        missing_vars.update(missing)
                     # end if
-                else:
-                    # We need to work with the host model version of this variable
-                    missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          in_vars)
-                    missing_vars.update(missing)
-                # end if
-            # end if (only input variables)
-            if ((intent in _OUTPUT_TYPES) and
-                  (stdname not in out_vars) and
-                  (stdname not in _EXCLUDED_STDNAMES)):
-                if not is_const:
-                    missing = _find_and_add_host_variable(stdname, host_dict,
-                                                          out_vars)
-                    # do nothing with missing variables
-                # end if
-            # end if (only output variables)
-        # end for (loop over call list)
+                # end if (only input variables)
+                if ((intent in _OUTPUT_TYPES) and
+                      (stdname not in out_vars) and
+                      (stdname not in _EXCLUDED_STDNAMES)):
+                    if not is_const:
+                        missing = _find_and_add_host_variable(stdname, host_dict,
+                                                              out_vars)
+                        # do nothing with missing variables
+                    # end if
+                # end if (only output variables)
+            # end for (loop over call sequence)
+        # end for (loop over suites)
+        # Registry variables used only as a dimension are inputs too
+        for stdname in dim_names:
+            if (stdname not in in_vars) and (stdname not in _EXCLUDED_STDNAMES):
+                _find_and_add_host_variable(stdname, host_dict, in_vars)
+            # end if
+        # end for
     # end for (loop over phases)
 
     if missing_vars:
@@ -427,9 +445,9 @@ def gather_ccpp_req_vars(cap_database):
     return list(in_vars.values()), list(out_vars.values()), constituent_vars, retmsg
 
 ##############################################################################
-def gather_set_before_use_vars(cap_database, host_vars, constituent_set):
+def gather_set_before_use_vars(suites, host_vars, constituent_set):
     """
-    For each CCPP suite in <cap_database>, find the variables from
+    For each CCPP suite in <suites>, find the variables from
        <host_vars> (excluding those in <constituent_set>) that the suite
        sets (intent out) before any of its schemes reads them, walking the
        schemes in call order over the phases that run after the host calls
@@ -441,36 +459,23 @@ def gather_set_before_use_vars(cap_database, host_vars, constituent_set):
        Suites with no such variable are not included.
     """
 
-    host_stdnames = set()
-    for hvar in host_vars:
-        stdname = hvar.get_prop_value('standard_name')
-        if stdname not in constituent_set:
-            host_stdnames.add(stdname)
-        # end if
-    # end for
+    host_stdnames = {hvar['standard_name'] for hvar in host_vars
+                     if hvar['standard_name'] not in constituent_set}
 
     set_before_use = {}
-    for suite in cap_database.suite_list():
+    for suite_name, suite in suites.items():
         # Intent of the first scheme argument to reference each
         #    standard name, in call order:
         first_intent = {}
-        for group in suite.groups:
-            if group.phase() in _PRE_READ_PHASES:
-                continue
+        for call in suite['call_sequence']:
+            if call['phase'] not in _PRE_READ_PHASES:
+                first_intent.setdefault(call['standard_name'], call['intent'])
             # end if
-            for scheme in group.schemes():
-                for var in scheme.variable_list():
-                    stdname = var.get_prop_value('standard_name')
-                    if stdname not in first_intent:
-                        first_intent[stdname] = var.get_prop_value('intent')
-                    # end if
-                # end for
-            # end for
         # end for
         stdnames = sorted(stdname for stdname, intent in first_intent.items()
                           if (intent == 'out') and (stdname in host_stdnames))
         if stdnames:
-            set_before_use[suite.name] = stdnames
+            set_before_use[suite_name] = stdnames
         # end if
     # end for
     return set_before_use
@@ -502,7 +507,7 @@ def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
     #Create another Fortran integer parameter to store max length of
     #variable standard name strings:
     outfile.write("!Max length of physics-related variable standard names:", 1)
-    stdname_list = [x.get_prop_value('standard_name') for x in host_vars]
+    stdname_list = [x['standard_name'] for x in host_vars]
     if stdname_list:
         max_slen = max(len(x) for x in stdname_list)
     else:
@@ -523,12 +528,12 @@ def write_ic_params(outfile, host_vars, ic_names, registry_constituents):
     # We need to look either in ic_names or the host variable
     max_loclen = 0
     for hvar in host_vars:
-        stdname = hvar.get_prop_value('standard_name')
+        stdname = hvar['standard_name']
         if stdname in ic_names:
             max_loclen = max(max_loclen,
                              max(len(x) for x in ic_names[stdname]))
         else:
-            locname = hvar.get_prop_value('local_name')
+            locname = hvar['local_name']
             max_loclen = max(max_loclen, len(locname))
             # Add this variable to the ic_names dictionary
             ic_names[stdname] = [locname]
@@ -576,7 +581,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
     # Create the correct number (<ic_name_num>) of initial-value strings
     #    for each variable with the proper length, <stdname_max_len>:
     for hvar in host_vars:
-        var_stdname = hvar.get_prop_value('standard_name')
+        var_stdname = hvar['standard_name']
         if var_stdname in registry_constituents:
             # skip registry constituents; we'll tackle these after
             continue
@@ -702,7 +707,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
             arr_suffix = ']'
         # end if
         #Set array values:
-        if hvar.get_prop_value('protected'):
+        if hvar['protected']:
             log_arr_str = '.true.' + arr_suffix
         else:
             log_arr_str = '.false.' + arr_suffix
@@ -743,7 +748,7 @@ def write_ic_arrays(outfile, ic_name_dict, ic_max_len,
             arr_suffix = ']'
         # end if
         #Set array values:
-        if hvar.get_prop_value('protected'):
+        if hvar['protected']:
             log_arr_str = 'PARAM' + arr_suffix
         else:
             log_arr_str = 'UNINITIALIZED' + arr_suffix
@@ -776,29 +781,24 @@ def _get_host_model_import(hvar, import_dict, host_dict):
     """
     missing_indices = []
     # Extract module name:
-    use_mod_name = hvar.source.name
+    use_mod_name = hvar['module']
     # Check if module name is already in dictionary:
     if use_mod_name not in import_dict:
         # Create an empty entry for this module
         import_dict[use_mod_name] = set()
     # end if
     # Add the variable
-    var_locname = hvar.var.get_prop_value('local_name')
-    import_dict[use_mod_name].add(var_locname)
-    aref = hvar.array_ref()
-    if aref:
-        dimlist = [x.strip() for x in aref.group(2).split(',')]
-        for dim in dimlist:
-            if dim != ':':
-                dvar = host_dict.find_variable(dim)
-                if dvar:
-                    _get_host_model_import(dvar, import_dict, host_dict)
-                else:
-                    missing_indices.append(dim)
-                # end if
+    import_dict[use_mod_name].add(_root_name(hvar))
+    for dim in hvar.get('local_subscript', []):
+        if dim != ':':
+            dvar = host_dict.get(dim.lower())
+            if dvar:
+                _get_host_model_import(dvar, import_dict, host_dict)
+            else:
+                missing_indices.append(dim)
             # end if
-        # end for
-    # end if
+        # end if
+    # end for
     if missing_indices:
         mi_str = ", ".join(missing_indices)
         raise CamInitWriteError(f"Missing host indices: {mi_str}.")
@@ -820,12 +820,12 @@ def collect_host_var_imports(host_vars, host_dict, constituent_set):
         # We do not import variables from the 'host' table as they are
         #    passed to physics via the argument list.
         # As such, they are also always considered initialized.
-        if hvar.source.ptype == 'host':
+        if _passed_by_host(hvar):
             continue
         # end if
         # We also do not want to import constituent variables, as they
         # should be automatically handled by the constituents object:
-        if hvar.get_prop_value('standard_name') in constituent_set:
+        if hvar['standard_name'] in constituent_set:
             continue
         # end if
         _get_host_model_import(hvar, use_vars_write_dict, host_dict)
@@ -878,8 +878,8 @@ def get_dimension_info(hvar):
     legal_dims = False
     fail_reason = ""
 
-    dims = hvar.get_dimensions()
-    levnm = hvar.has_vertical_dimension()
+    dims = hvar['dimensions']
+    levnm = _vertical_dimension(hvar)
     has_constituent_dim = any('number_of_ccpp_constituents' in dim for dim in dims)
 
     # <hvar> is only 'legal' for 2 or 3 dimensional fields (i.e., 1 or 2
@@ -888,10 +888,10 @@ def get_dimension_info(hvar):
     # XXgoldyXX: If we ever need to read scalars, it would have to be
     #            done using global attributes, not 'infld'.
     ldims = len(dims)
-    lname = hvar.get_prop_value('local_name')
+    lname = hvar['local_name']
     suff = ""
     legal_dims = True
-    if not hvar.has_horizontal_dimension():
+    if not _has_horizontal_dimension(hvar):
         legal_dims = False
         fail_reason += f"{suff}{lname} has no horizontal dimension"
         suff = "; "
@@ -998,11 +998,11 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
         # We do not attempt to read values from variables from the 'host'
         #    table as they are passed to physics via the argument list.
         # As such, they are always considered initialized.
-        if hvar.source.ptype == 'host':
+        if _passed_by_host(hvar):
             continue
         # end if
-        var_stdname = hvar.get_prop_value('standard_name')
-        var_locname = hvar.call_string(host_dict)
+        var_stdname = hvar['standard_name']
+        var_locname = _call_string(hvar, host_dict)
 
         # Ignore any variable that is listed as a constiutuent,
         # as they will be handled separately by the constituents object:
@@ -1015,14 +1015,14 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 
         # Extract vertical level variable:
         levnm, call_read_field, reason, has_constituent_read = get_dimension_info(hvar)
-        if hvar.get_prop_value('protected'):
+        if hvar['protected']:
             call_read_field = False
             if reason:
                 suff = "; "
             else:
                 suff = ""
             # end if
-            lvar = hvar.get_prop_value('local_name')
+            lvar = hvar['local_name']
             reason += f"{suff}{lvar} is a protected variable"
         # end if
 
@@ -1379,11 +1379,11 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
         # We do not 'check' variables from the 'host' table as they are
         #    passed to physics via the argument list.
         # As such, they are always considered initialized.
-        if hvar.source.ptype == 'host':
+        if _passed_by_host(hvar):
             continue
         # end if
-        var_stdname = hvar.get_prop_value('standard_name')
-        var_locname = hvar.call_string(host_dict)
+        var_stdname = hvar['standard_name']
+        var_locname = _call_string(hvar, host_dict)
 
         # Ignore any variable that is listed as a constiutuent,
         # as they will be handled separately by the constituents object:
@@ -1777,6 +1777,114 @@ def is_vertical_dimension(dim_name: str) -> bool:
     False
     """
     return dim_name in CCPP_VERTICAL_DIMENSIONS
+
+def _report(datatable, action, value=True):
+    """Return the result of <action> on <datatable> as a list."""
+    out = datatable_report(datatable, DatatableReport(action, value), '\n')
+    return [x for x in out.split('\n') if x]
+
+def _read_host_dict(datatable):
+    """Return a dictionary (keys = standard names) containing field
+       information for every host variable"""
+    host = {name: {'standard_name': name}
+            for name in _report(datatable, 'host_variables')}
+    for attr in _HOST_ATTRS:
+        for pair in _report(datatable, 'host_variable_attribute', attr):
+            name, value = pair.split('=', 1)
+            host[name][attr] = value
+        # end for
+    # end for
+    for props in host.values():
+        props.setdefault('local_name', props['standard_name'])
+        props['dimensions'] = [d.strip() for d in
+                               props.get('dimensions', '').split(',') if d.strip()]
+        props['local_subscript'] = [x.strip() for x in
+                                    props.get('local_subscript', '').split(',') if x.strip()]
+        props['protected'] = props.get('protected') == 'True'
+    # end for
+    return host
+
+def _read_suite(datatable, suite):
+    """Per-suite call-list data from <datatable>."""
+    calls = []
+    for line in _report(datatable, 'call_sequence', suite):
+        phase, _, stdname, intent, local_name = line.split()
+        calls.append({'phase': phase, 'standard_name': stdname,
+                      'intent': intent, 'local_name': local_name})
+    # end for
+    return {
+        'constituents':    set(_report(datatable, 'constituent_variables', suite)),
+        'advected':        set(_report(datatable, 'advected_variables', suite)),
+        'suite_variables': set(_report(datatable, 'suite_variables', suite)),
+        'call_sequence':   calls
+    }
+
+def _is_ddt(hvar):
+    """Return True if <hvar>'s type is not a Fortran intrinsic"""
+    return hvar.get('type', '').lower() not in _FORTRAN_INTRINSICS
+
+def _passed_by_host(hvar):
+    """Return True if <hvar> is passed to physics by the host (rather than
+       being a registry module variable or a control variable)"""
+    # Phase F: until CAM-SIMA metadata says 'type = module' itself, the
+    #    registry tables are recorded by the capgen_compat metadata parser.
+    from metadata_table import MODULE_ORIGIN_TABLE_NAMES
+    module = hvar.get('module')
+    return bool(module) and (module.lower() not in MODULE_ORIGIN_TABLE_NAMES)
+
+def _root_name(hvar):
+    """Return the top-level Fortran symbol of <hvar> (the one to USE)"""
+    access_path = hvar.get('access_path') or hvar['local_name']
+    return access_path.split('%', 1)[0].split('(', 1)[0].strip()
+
+def _call_string(hvar, host_dict):
+    """Return the Fortran expression for <hvar>, with any subscript
+       indices replaced by their host local names"""
+    base = hvar.get('access_path') or hvar['local_name']
+    subscript = hvar.get('local_subscript')
+    if subscript:
+        resolved = []
+        for tok in subscript:
+            dvar = host_dict.get(tok.lower()) if tok != ':' else None
+            resolved.append(dvar['local_name'] if dvar else tok)
+        # end for
+        base = f"{base}({', '.join(resolved)})"
+    # end if
+    return base.lower()
+
+def _strip_bounds(dim):
+    """Return <dim> without any lower bound"""
+    return dim.split(':', 1)[-1].strip()
+
+def _has_horizontal_dimension(hvar):
+    """Return True if <hvar> has a horizontal dimension"""
+    return any(_strip_bounds(d) in _HORIZONTAL_DIMS for d in hvar['dimensions'])
+
+def _vertical_dimension(hvar):
+    """Return <hvar>'s vertical dimension standard name, or ''"""
+    for dim in hvar['dimensions']:
+        if _strip_bounds(dim) in _VERTICAL_DIMS:
+            return _strip_bounds(dim)
+        # end if
+    # end for
+    return ''
+
+def _add_dimension_names(stdname, host_dict, dim_names):
+    """Append to <dim_names> any registry variable that is a dimension of
+       host variable <stdname>"""
+    hvar = host_dict.get(stdname.lower())
+    if not hvar:
+        return
+    # end if
+    for dim in hvar['dimensions']:
+        for token in dim.split(':'):
+            dvar = host_dict.get(token.strip().lower())
+            if (dvar and dvar.get('module') and not _passed_by_host(dvar)
+                and dvar['standard_name'] not in dim_names):
+                dim_names.append(dvar['standard_name'])
+            # end if
+        # end for
+    # end for
 
 #############
 # End of file

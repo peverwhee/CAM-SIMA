@@ -74,8 +74,6 @@ the import entirely in favour of CLI invocation.
 | `ccpp_capgen.py` | `capgen`, `CapDatabase` |
 | `framework_env.py` | `CCPPFrameworkEnv` |
 | `ccpp_state_machine.py` | `CCPP_STATE_MACH` |
-| `parse_tools.py` | capgen's `metadata.parse_tools` symbols |
-| `fortran_tools.py` | `FortranWriter` |
 | `ddt_library.py` | `VarDDT` (the adapter's `_var_wrapper._VarDDT`) |
 
 ### CapDatabase adapter (~850 LOC)
@@ -148,7 +146,7 @@ retires when its consumer is rewritten.
 `cam_autogen.py` (and the unit tests) prepend
 `cime_config/capgen_compat/` to `sys.path` before any
 `from ccpp_capgen import ...`-style import.  That makes the flat
-shims (`ccpp_capgen.py`, `parse_tools.py`, ...) resolve here.
+shims (`ccpp_capgen.py`, ...) resolve here.
 
 `capgen_compat/` itself relies on capgen being importable, so the
 pinned `ccpp_framework/capgen/` external is also appended to
@@ -182,7 +180,7 @@ below minimises churn.
 | **B** | Rewrite `write_init_files.py` to consume `datatable.xml` only (no `cap_database` Python object).  Drop `FortranWriter` in the rewrite — use direct f-strings or a small in-tree emitter. | `_cap_database.py`, `_var_wrapper.py`, `_runner.py`, the `MetaVar` / `MetadataSection` monkey-patches, **`fortran_write.py`** if it was the last `FortranWriter` caller, and the `return_state=True` hook on `ccpp_capgen.capgen` (delete on the capgen side) |  |
 | **C** | Rewrite `generate_registry_data.py` to use capgen's CLI + a small Fortran emitter | rest of `metadata_table.py`'s parse-shim, **and `fortran_write.py`** if it had not already gone |  |
 | **D** | Rewrite `hist_config.py` (or its dependents) to use a stdlib / native config parser instead of `ParseObject` | `parse_object.py`, **`parse_source.py`** (no remaining importer), `parse_tools.py` shim | Done - created smaller version of `ParseObject` in `hist_config` |
-| **E** | Mechanical sweep: replace `from ccpp_capgen import …` / `from framework_env import …` / etc. with capgen's native paths, or remove them entirely if the CLI replaces them | Remaining flat-module shims |  |
+| **E** | Mechanical sweep: replace `from ccpp_capgen import …` / `from framework_env import …` / etc. with capgen's native paths, or remove them entirely if the CLI replaces them | Remaining flat-module shims | Done |
 | **F** | Migrate on-disk metadata (`type = module` → `type = host`; drop `persistence = …`); migrate registry XML (`<file type="module">` → `<file type="host">`) | The parse-time rewriter dies (`_rewrite_module_to_host`, `_DROP_ATTRS`, `_backfill_module_name`) |  |
 | **G** | `rm -rf cime_config/capgen_compat/` + revert `sys.path` additions in `cam_autogen.py` + test scripts | Directory gone |  |
 
