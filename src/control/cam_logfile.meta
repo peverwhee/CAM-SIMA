@@ -1,10 +1,10 @@
 [ccpp-table-properties]
   name = cam_logfile
-  type = module
+  type = host
 
 [ccpp-arg-table]
   name  = cam_logfile
-  type  = module
+  type  = host
 [ iulog ]
   standard_name = log_output_unit
   units = 1

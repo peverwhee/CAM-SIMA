@@ -45,6 +45,7 @@ contains
       use cam_constituents,                     only: const_is_initialized
       use ccpp_constituent_prop_mod,            only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                          only: iulog
+      use simple_sub,                           only: dtime_phys, pcols, pver
       use physics_types_simple_constituent_dim, only: cool_cat_for_each_const
       use physics_types_simple_constituent_dim, only: cool_default_cat_for_each_const, slp, theta
 
@@ -160,6 +161,16 @@ contains
                   ! Read variable from IC file:
 
                   select case (trim(phys_var_stdnames(name_idx)))
+                     case ('horizontal_dimension')
+                        call &
+                            endrun('Cannot read pcols from file'// &
+                            ', pcols has no horizontal dimension; pcols is a protected variable')
+
+                     case ('vertical_layer_dimension')
+                        call &
+                            endrun('Cannot read pver from file'// &
+                            ', pver has no horizontal dimension; pver is a protected variable')
+
                      case ('potential_temperature')
                         call read_field(file, 'potential_temperature', input_var_names(:,name_idx), &
                             'lev', timestep, theta)
@@ -177,6 +188,11 @@ contains
                         call read_constituent_dimensioned_field(const_props, file, &
                             'super_cool_cat_with_default_every_const', input_var_names(:,name_idx), &
                             timestep, cool_default_cat_for_each_const, error_on_not_found=.false.)
+
+                     case ('timestep_for_physics')
+                        call &
+                            endrun('Cannot read dtime_phys from file'// &
+                            ', dtime_phys has no horizontal dimension; dtime_phys is a protected variable')
 
                   end select !read variables
                end select !special indices

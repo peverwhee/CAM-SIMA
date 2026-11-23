@@ -339,8 +339,7 @@ class CamInitWriteError(ValueError):
 
 ##############################################################################
 def _find_and_add_host_variable(stdname, host_dict, var_dict):
-    """Find <stdname> in <host_dict> and add it to <var_dict> if found and
-          not of type, 'host'.
+    """Find <stdname> in <host_dict> and add it to <var_dict> if found.
        Return [<stdname>] if not found, otherwise [].
        Note: This function has a side effect (adding to <var_dict>).
     """
@@ -353,9 +352,7 @@ def _find_and_add_host_variable(stdname, host_dict, var_dict):
         # initializes it at run time, so we can skip it
         return []
     # end if
-    if not _passed_by_host(hvar):
-        var_dict[stdname] = hvar
-    # end if
+    var_dict[stdname] = hvar
     return []
 
 ##############################################################################
@@ -817,12 +814,6 @@ def collect_host_var_imports(host_vars, host_dict, constituent_set):
 
     # Loop over all variable standard names:
     for hvar in host_vars:
-        # We do not import variables from the 'host' table as they are
-        #    passed to physics via the argument list.
-        # As such, they are also always considered initialized.
-        if _passed_by_host(hvar):
-            continue
-        # end if
         # We also do not want to import constituent variables, as they
         # should be automatically handled by the constituents object:
         if hvar['standard_name'] in constituent_set:
@@ -995,12 +986,6 @@ def write_phys_read_subroutine(outfile, host_dict, host_vars, host_imports,
 
     # Loop over all variable standard names:
     for hvar in host_vars:
-        # We do not attempt to read values from variables from the 'host'
-        #    table as they are passed to physics via the argument list.
-        # As such, they are always considered initialized.
-        if _passed_by_host(hvar):
-            continue
-        # end if
         var_stdname = hvar['standard_name']
         var_locname = _call_string(hvar, host_dict)
 
@@ -1376,12 +1361,6 @@ def write_phys_check_subroutine(outfile, host_dict, host_vars, host_imports,
     call_string_dict = OrderedDict()
     # Create a check_field call for each host-model variable
     for hvar in host_vars:
-        # We do not 'check' variables from the 'host' table as they are
-        #    passed to physics via the argument list.
-        # As such, they are always considered initialized.
-        if _passed_by_host(hvar):
-            continue
-        # end if
         var_stdname = hvar['standard_name']
         var_locname = _call_string(hvar, host_dict)
 
@@ -1823,15 +1802,6 @@ def _is_ddt(hvar):
     """Return True if <hvar>'s type is not a Fortran intrinsic"""
     return hvar.get('type', '').lower() not in _FORTRAN_INTRINSICS
 
-def _passed_by_host(hvar):
-    """Return True if <hvar> is passed to physics by the host (rather than
-       being a registry module variable or a control variable)"""
-    # Phase F: until CAM-SIMA metadata says 'type = module' itself, the
-    #    registry tables are recorded by the capgen_compat metadata parser.
-    from metadata_table import MODULE_ORIGIN_TABLE_NAMES
-    module = hvar.get('module')
-    return bool(module) and (module.lower() not in MODULE_ORIGIN_TABLE_NAMES)
-
 def _root_name(hvar):
     """Return the top-level Fortran symbol of <hvar> (the one to USE)"""
     access_path = hvar.get('access_path') or hvar['local_name']
@@ -1879,7 +1849,7 @@ def _add_dimension_names(stdname, host_dict, dim_names):
     for dim in hvar['dimensions']:
         for token in dim.split(':'):
             dvar = host_dict.get(token.strip().lower())
-            if (dvar and dvar.get('module') and not _passed_by_host(dvar)
+            if (dvar and dvar.get('module')
                 and dvar['standard_name'] not in dim_names):
                 dim_names.append(dvar['standard_name'])
             # end if

@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = banana_namelist
-  type = module
+  type = host
 [ccpp-arg-table]
   name  = banana_namelist
-  type  = module
+  type  = host
 [ rayk0 ]
   standard_name = banana_center_vertical_index
   type = integer

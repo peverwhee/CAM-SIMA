@@ -72,11 +72,11 @@
 
 [ccpp-table-properties]
   name = radiative_aerosol_definitions
-  type = module
+  type = host
 
 [ccpp-arg-table]
   name  = radiative_aerosol_definitions
-  type  = module
+  type  = host
 [ N_DIAG ]
   standard_name = number_of_radiative_aerosol_diagnostic_lists
   units = count

@@ -1,11 +1,11 @@
 ###################################
 [ccpp-table-properties]
   name = cam_constituents
-  type = module
+  type = host
 
 [ccpp-arg-table]
   name  = cam_constituents
-  type  = module
+  type  = host
 [ num_advected ]
   standard_name = number_of_advected_constituents
   units = count

@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = ref_two
-  type = module
+  type = host
 [ccpp-arg-table]
   name = ref_two
-  type = module
+  type = host
 [ thermo_obj ]
   standard_name = host_thermo_vars_obj
   units = None

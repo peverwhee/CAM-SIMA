@@ -181,7 +181,7 @@ below minimises churn.
 | **C** | Rewrite `generate_registry_data.py` to use capgen's CLI + a small Fortran emitter | rest of `metadata_table.py`'s parse-shim, **and `fortran_write.py`** if it had not already gone |  |
 | **D** | Rewrite `hist_config.py` (or its dependents) to use a stdlib / native config parser instead of `ParseObject` | `parse_object.py`, **`parse_source.py`** (no remaining importer), `parse_tools.py` shim | Done - created smaller version of `ParseObject` in `hist_config` |
 | **E** | Mechanical sweep: replace `from ccpp_capgen import …` / `from framework_env import …` / etc. with capgen's native paths, or remove them entirely if the CLI replaces them | Remaining flat-module shims | Done |
-| **F** | Migrate on-disk metadata (`type = module` → `type = host`; drop `persistence = …`); migrate registry XML (`<file type="module">` → `<file type="host">`) | The parse-time rewriter dies (`_rewrite_module_to_host`, `_DROP_ATTRS`, `_backfill_module_name`) |  |
+| **F** | Migrate on-disk metadata (`type = module` → `type = host`; drop `persistence = …`); migrate registry XML (`<file type="module">` → `<file type="host">`) | The parse-time rewriter dies (`_rewrite_module_to_host`, `_DROP_ATTRS`, `_backfill_module_name`) | DONE |
 | **G** | `rm -rf cime_config/capgen_compat/` + revert `sys.path` additions in `cam_autogen.py` + test scripts | Directory gone |  |
 
 ## Asks of capgen
@@ -192,7 +192,7 @@ interface.
 
 1. **Delete the `return_state=True` kwarg** on
    `ccpp_capgen.capgen` once Phase B lands.  No production caller
-   should ever depend on it.
+   should ever depend on it. (DONE)
 2. **If CAM-SIMA cannot avoid Python imports**, capgen exposes
    a Python wrapper for each of the three CLI utilities — `capgen()`,
    `validator()`, `datafile()` — taking the same option names as

@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = air_composition
-  type = module
+  type = host
 [ccpp-arg-table]
   name  = air_composition
-  type  = module
+  type  = host
 [ mmro2 ]
   standard_name = molecular_oxygen_mixing_ratio_wrt_dry_air
   units = kg kg-1

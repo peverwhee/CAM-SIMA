@@ -61,10 +61,10 @@
   dimensions = ()
 [ccpp-table-properties]
   name = physics_types_ddt2
-  type = module
+  type = host
 [ccpp-arg-table]
   name = physics_types_ddt2
-  type = module
+  type = host
 [ phys_state ]
   standard_name = physics_state_due_to_dynamics
   long_name = Physics state variables updated by dynamical core

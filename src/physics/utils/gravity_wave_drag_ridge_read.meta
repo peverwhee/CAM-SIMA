@@ -1,10 +1,10 @@
 [ccpp-table-properties]
   name = gravity_wave_drag_ridge_read
-  type = module
+  type = host
 
 [ccpp-arg-table]
   name  = gravity_wave_drag_ridge_read
-  type  = module
+  type  = host
 [ prdg ]
   standard_name = number_of_ridges_in_ridge_gravity_wave_drag
   units = count

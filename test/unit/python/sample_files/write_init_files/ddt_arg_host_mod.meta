@@ -8,11 +8,11 @@
 
 [ccpp-table-properties]
   name = ddt_arg_host_mod
-  type = module
+  type = host
 
 [ccpp-arg-table]
   name = ddt_arg_host_mod
-  type = module
+  type = host
 [ test_list ]
   standard_name = test_list_for_ddt_argument
   units = none

@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = vert_coord
-  type = module
+  type = host
 [ccpp-arg-table]
   name = vert_coord
-  type = module
+  type = host
 [ pver ]
   standard_name = vertical_layer_dimension
   long_name = number of vertical layers

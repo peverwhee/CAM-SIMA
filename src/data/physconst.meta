@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name  = physconst
-  type  = module
+  type  = host
 [ccpp-arg-table]
   name  = physconst
-  type  = module
+  type  = host
 [ avogad ]
   standard_name = avogadro_number
   long_name = Avogadro's Number

@@ -32,7 +32,7 @@ module phys_vars_init_check_constituent_dim
    integer, public, parameter ::          PARAM = 2
    integer, public, parameter :: READ_FROM_FILE = 3
    ! Total number of physics-related variables:
-   integer, public, parameter :: phys_var_num = 4
+   integer, public, parameter :: phys_var_num = 7
    integer, public, parameter :: phys_const_num = 16
 
    !Max length of physics-related variable standard names:
@@ -43,10 +43,13 @@ module phys_vars_init_check_constituent_dim
 
    ! Physics-related input variable standard names:
    character(len=39), public, protected :: phys_var_stdnames(phys_var_num) = [character(len=39) :: &
+      'horizontal_dimension', &
+      'vertical_layer_dimension', &
       'potential_temperature', &
       'air_pressure_at_sea_level', &
       'super_cool_cat_every_const', &
-      'super_cool_cat_with_default_every_const']
+      'super_cool_cat_with_default_every_const', &
+      'timestep_for_physics']
 
    character(len=36), public, protected :: phys_const_stdnames(phys_const_num) = [ &
       'ccpp_constituent_minimum_values     ', &
@@ -67,24 +70,33 @@ module phys_vars_init_check_constituent_dim
       'suite_part                          ']
    !Array storing all registered IC file input names for each variable:
    character(len=21), public, protected :: input_var_names(2, phys_var_num) = reshape([ &
+      'pcols                ', '                     ', &
+      'pver                 ', '                     ', &
       'theta                ', 'pot_temp             ', &
       'slp                  ', 'sea_lev_pres         ', &
       'cool_cat_tend        ', 'pbuf_COOL_CAT_TEND   ', &
-      'cool_cat_default_tend', '                     '], [2, phys_var_num])
+      'cool_cat_default_tend', '                     ', &
+      'dtime_phys           ', '                     '], [2, phys_var_num])
 
    ! Array indicating whether or not variable is protected:
    logical, public, protected :: protected_vars(phys_var_num)= [ &
+      .true., &
+      .true., &
       .false., &
       .false., &
       .false., &
-      .false.]
+      .false., &
+      .true.]
 
    ! Variable state (UNINITIALIZED, INTIIALIZED, PARAM or READ_FROM_FILE):
    integer, public, protected :: initialized_vars(phys_var_num)= [ &
+      PARAM, &
+      PARAM, &
       UNINITIALIZED, &
       UNINITIALIZED, &
       UNINITIALIZED, &
-      UNINITIALIZED]
+      UNINITIALIZED, &
+      PARAM]
 
 
 contains

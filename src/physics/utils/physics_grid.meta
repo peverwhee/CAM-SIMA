@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = physics_grid
-  type = module
+  type = host
 [ccpp-arg-table]
   name = physics_grid
-  type = module
+  type = host
 [ num_global_phys_cols ]
   standard_name = number_of_global_points
   long_name = global number of columns

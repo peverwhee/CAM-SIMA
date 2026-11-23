@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = musica_ccpp_dependencies
-  type = module
+  type = host
 [ccpp-arg-table]
   name  = musica_ccpp_dependencies
-  type  = module
+  type  = host
 [ photolysis_wavelength_grid_section_dimension ]
   standard_name = photolysis_wavelength_grid_section_dimension
   units = count

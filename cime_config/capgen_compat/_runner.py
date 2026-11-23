@@ -170,17 +170,6 @@ def capgen(run_env):
 
     cn_kwargs['logger'] = logger
 
-    # Pre-scan every host/scheme .meta file for the
-    # ``# capgen_compat:original_type = module`` marker so
-    # ``MODULE_ORIGIN_TABLE_NAMES`` is populated before
-    # capgen's internal parse runs.  ``write_init_files._passed_by_host``
-    # consults that set; without it, registry module vars are treated
-    # as host-passed and ``phys_var_stdnames`` comes out empty.
-    from metadata_table import _scan_module_origin_tables, MODULE_ORIGIN_TABLE_NAMES
-    for path in (cn_kwargs.get('host_files', []) or []) + \
-                (cn_kwargs.get('scheme_files', []) or []):
-        MODULE_ORIGIN_TABLE_NAMES.update(_scan_module_origin_tables(path))
-
     # Transient migration shims.  Capgen's CLI enables these by
     # calling a module-level ``enable()`` *before* the ``capgen()``
     # function runs; do the same here when the matching kwarg is

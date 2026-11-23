@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = runtime_obj
-  type = module
+  type = host
 [ccpp-arg-table]
   name = runtime_obj
-  type = module
+  type = host
 [ unset_real ]
   standard_name = definition_of_unset_for_real_variables
   units = 1

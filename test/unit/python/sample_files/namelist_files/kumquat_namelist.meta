@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = kumquat_namelist
-  type = module
+  type = host
 [ccpp-arg-table]
   name  = kumquat_namelist
-  type  = module
+  type  = host
 [ pgwv ]
   standard_name = kumquat_spectrum_dimension
   type = integer

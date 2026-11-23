@@ -663,10 +663,10 @@ class SchemeNamelistInfo:
         with open(self.__metadata_file, "w") as mfile:
             mfile.write("[ccpp-table-properties]\n")
             mfile.write(f"  name = {self.nlread_module}\n")
-            mfile.write("  type = module\n")
+            mfile.write("  type = host\n")
             mfile.write("[ccpp-arg-table]\n")
             mfile.write(f"  name  = {self.nlread_module}\n")
-            mfile.write("  type  = module\n")
+            mfile.write("  type  = host\n")
             for var in nlvars:
                 var.write_metadata_entry(mfile)
             # end for

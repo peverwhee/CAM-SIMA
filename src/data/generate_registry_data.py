@@ -1070,24 +1070,14 @@ class VarDict(OrderedDict):
 
     def write_metadata(self, outfile):
         """Write out the variables in this dictionary as CCPP metadata.
-
-        The ``type =`` attribute uses CAM-SIMA's original-capgen
-        vocabulary (``host`` / ``module`` / ``ddt``).  The
-        capgen_compat layer's ``metadata_table`` shim rewrites
-        ``type = module`` to ``type = host`` at parse time so
-        capgen's stricter parser accepts the file, and records the
-        affected table names in ``MODULE_ORIGIN_TABLE_NAMES`` so the
-        ``_VarWrapper`` can preserve original capgen's
-        ``source.ptype = 'module'`` classification -- which
-        ``write_init_files.py`` needs to decide which variables to
-        allocate and initialise.
+        Registry 'module' and 'host' files are both CCPP 'host' tables.
         """
         outfile.write('[ccpp-table-properties]\n')
         outfile.write(f'  name = {self.name}\n')
-        outfile.write(f'  type = {self.module_type}\n')
+        outfile.write('  type = host\n')
         outfile.write('[ccpp-arg-table]\n')
         outfile.write(f'  name = {self.name}\n')
-        outfile.write(f'  type = {self.module_type}\n')
+        outfile.write('  type = host\n')
         for var in self.variable_list():
             var.write_metadata(outfile)
         # end if
@@ -1664,7 +1654,8 @@ def metadata_file_to_files(file_path, known_types, dycore, run_env):
             # Add variable to module dictionary in case it
             # is needed during code generation:
             if std_name not in var_module_dict.keys():
-                var_module_dict[std_name] = [mtable.module_name, local_name]
+                module_name = mtable.module_name or mtable.table_name
+                var_module_dict[std_name] = [module_name, local_name]
         # end for
         if htype == 'ddt':
             # We defined the variables, now create the DDT for them.

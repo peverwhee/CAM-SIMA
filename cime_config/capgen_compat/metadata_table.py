@@ -30,7 +30,6 @@ from metadata.metadata_table import (
     MetadataTable,  # noqa: F401
     MetadataSection,
     MetaVar,
-    _parse_lines as _capgen_parse_lines,
 )
 
 
@@ -257,132 +256,6 @@ if not hasattr(MetadataSection, 'variable_list'):
     MetadataSection.variable_list = _variable_list
 
 
-import os as _os
-import re as _re_parse
-import tempfile as _tempfile
-
-
-_TABLE_TYPE_RE = _re_parse.compile(
-    r'^(?P<indent>\s*)type(?P<sep>\s*=\s*)module\b(?P<rest>.*)$'
-)
-_TABLE_NAME_RE = _re_parse.compile(r'^\s*name\s*=\s*(\S+)\s*$')
-_TABLE_HDR     = '[ccpp-table-properties]'
-
-# Attributes capgen does not recognise but original capgen did.
-# Listed here for parse-time stripping by ``_rewrite_module_to_host``.
-# Each is semantically irrelevant to cap generation (capgen's
-# resolver ignores all of them); the consumer is CAM-SIMA's own
-# tooling, which reads metadata through THIS shim and so never sees
-# the attribute either way.  Lines matching ``<indent><name>=...``
-# are silently dropped.
-#
-# * ``persistence = timestep|run`` -- CAM-SIMA's allocator reset
-#   cadence hint.  No capgen equivalent.
-_DROP_ATTRS = frozenset({
-    'persistence',
-})
-
-_DROP_ATTR_RE = _re_parse.compile(
-    r'^\s*(' + '|'.join(_DROP_ATTRS) + r')\s*=', _re_parse.IGNORECASE
-)
-
-
-# Module-level set of table names whose source metadata carried the
-# original-capgen ``type = module`` spelling.
-# ``write_init_files._passed_by_host`` reads this to tell registry
-# module variables from host-passed ones.  Populated incrementally by
-# every call to
-# :func:`parse_metadata_file` (and by the pre-scan in
-# ``_runner.capgen``).
-MODULE_ORIGIN_TABLE_NAMES = set()
-
-
-def _rewrite_module_to_host(text):
-    """Rewrite ``type = module`` to ``type = host`` in *text*.
-
-    Returns ``(rewritten_text, table_names_that_were_module)`` where
-    ``table_names_that_were_module`` is the set of table names whose
-    ``[ccpp-table-properties]`` block declared ``type = module``.
-    Both occurrences in a block (the table-properties one and the
-    matching arg-table one) are rewritten; the table-properties
-    occurrence is the one that drives the table-name capture.
-
-    capgen's parser rejects ``type = module`` outright; the rewrite
-    keeps the metadata semantically valid for capgen while
-    preserving the original-capgen distinction in
-    ``MODULE_ORIGIN_TABLE_NAMES`` so ``_VarWrapper.from_host_entry``
-    can route module-allocated vars through ``ptype = 'module'``.
-    """
-    out_lines = []
-    flagged = set()
-    cur_table = None
-    in_table_props = False
-    saw_module = False
-    for line in text.splitlines(keepends=True):
-        stripped = line.strip()
-        if stripped == _TABLE_HDR:
-            # Flush the previous block's accounting.
-            if saw_module and cur_table is not None:
-                flagged.add(cur_table.lower())
-            cur_table = None
-            in_table_props = True
-            saw_module = False
-            out_lines.append(line)
-            continue
-        if stripped.startswith('[') and stripped.endswith(']'):
-            # Any other section header closes the table-properties block.
-            in_table_props = False
-        if in_table_props:
-            m = _TABLE_NAME_RE.match(line)
-            if m:
-                cur_table = m.group(1)
-        # Drop attributes capgen doesn't model (see ``_DROP_ATTRS``).
-        # They live inside per-variable [ name ] blocks and capgen
-        # rejects unknown attribute names; silently skipping them
-        # keeps the metadata semantically valid for capgen while
-        # preserving the original file on disk unchanged.
-        if _DROP_ATTR_RE.match(line):
-            continue
-        # Rewrite the ``type = module`` line wherever it appears
-        # (table-properties block and the paired arg-table block).
-        m = _TABLE_TYPE_RE.match(line)
-        if m:
-            saw_module = True
-            line = '{indent}type{sep}host{rest}'.format(
-                indent=m.group('indent'),
-                sep=m.group('sep'),
-                rest=m.group('rest'),
-            )
-            if not line.endswith('\n'):
-                line += '\n'
-        out_lines.append(line)
-    # End-of-file flush.
-    if saw_module and cur_table is not None:
-        flagged.add(cur_table.lower())
-    return ''.join(out_lines), flagged
-
-
-def _backfill_module_name(tables):
-    """Default each table's empty ``module_name`` to its ``table_name``.
-
-    Original capgen exposed ``MetadataTable.module_name`` as the
-    Fortran module exporting the table's symbols, and treated the
-    table name as the implicit default when no ``module_name = ...``
-    override was declared.  Capgen leaves the attribute as ``''``
-    in that case and resolves the fallback elsewhere (deeper in the
-    cap emitter).  CAM-SIMA's ``generate_registry_data.py`` reads
-    ``mtable.module_name`` directly when building its
-    ``var_module_dict`` -- an empty string there produces broken
-    ``use , only: ...`` lines in the generated Fortran.  Mirror
-    original capgen's default at the parse-shim layer instead of
-    teaching cam-sima to apply the fallback itself.
-    """
-    for t in tables:
-        if not t.module_name:
-            t.module_name = t.table_name
-    return tables
-
-
 def parse_metadata_file(filename, known_ddts=None, run_env=None,
                         skip_ddt_check=False,
                         relative_source_path=False):
@@ -390,80 +263,8 @@ def parse_metadata_file(filename, known_ddts=None, run_env=None,
 
     Forwards *filename* to capgen's parser and silently discards
     every other argument; capgen's parser does not need them.
-
-    If *filename* declares any ``type = module`` tables, the contents
-    are rewritten in-memory to ``type = host`` (so capgen's parser
-    accepts the file) and the affected table names are added to
-    :data:`MODULE_ORIGIN_TABLE_NAMES`.  The rewrite is invisible to
-    callers; the returned tables look exactly like capgen would
-    have produced for a natively-``type = host`` file.
-
-    Each returned table also has its ``module_name`` defaulted to
-    ``table_name`` if no explicit override was declared (matching
-    original capgen's semantics; see :func:`_backfill_module_name`).
     """
-    try:
-        with open(filename, encoding='utf-8') as fh:
-            text = fh.read()
-    except (OSError, UnicodeDecodeError):
-        # Let capgen surface the real error.
-        return _backfill_module_name(_capgen_parse_metadata_file(filename))
-
-    rewritten, flagged = _rewrite_module_to_host(text)
-    MODULE_ORIGIN_TABLE_NAMES.update(flagged)
-
-    if rewritten == text:
-        # Nothing was rewritten and no attrs were dropped.
-        return _backfill_module_name(_capgen_parse_metadata_file(filename))
-
-    # Hand the rewritten content to capgen's ``_parse_lines``
-    # directly with the ORIGINAL filename as the source location.
-    # That keeps error messages, line-number references, and
-    # per-table ``source_path`` resolution pointing at the real file
-    # (no temp-file leakage into user-visible diagnostics) while
-    # capgen's parser sees the rewritten contents.
-    rewritten_lines = rewritten.splitlines(keepends=True)
-    return _backfill_module_name(
-        _capgen_parse_lines(rewritten_lines, filename))
-
-
-# Monkey-patch capgen's own ``parse_metadata_file`` so its
-# internal calls (made from ``ccpp_capgen.capgen``,
-# ``_load_metadata_files``, etc.) route through our rewriter and
-# pick up the type=module → type=host fix-up.  The shim's public
-# ``parse_metadata_file`` above also uses the same rewriter -- this
-# patch covers the path cam-sima doesn't control.
-import metadata.metadata_table as _capgen_meta_mod  # noqa: E402
-
-if getattr(_capgen_meta_mod.parse_metadata_file,
-           '_capgen_compat_wrapped', False) is False:
-    _orig = _capgen_parse_metadata_file
-
-    def _patched_parse_metadata_file(file_path):
-        return parse_metadata_file(file_path)
-
-    _patched_parse_metadata_file._capgen_compat_wrapped = True
-    _capgen_meta_mod.parse_metadata_file = _patched_parse_metadata_file
-
-
-def _scan_module_origin_tables(file_path):
-    """Return the set of table names in *file_path* whose
-    ``[ccpp-table-properties]`` declared ``type = module``.
-
-    Used by ``_runner.capgen`` to pre-populate
-    :data:`MODULE_ORIGIN_TABLE_NAMES` before capgen's internal
-    metadata parser runs (capgen's parser calls
-    :func:`metadata.metadata_table.parse_metadata_file` directly --
-    not through this shim -- so the pre-scan ensures the set is up to
-    date by the time ``_VarWrapper.from_host_entry`` is invoked).
-    """
-    try:
-        with open(file_path, encoding='utf-8') as fh:
-            text = fh.read()
-    except (OSError, UnicodeDecodeError):
-        return set()
-    _, flagged = _rewrite_module_to_host(text)
-    return flagged
+    return _capgen_parse_metadata_file(filename)
 
 
 __all__ = [

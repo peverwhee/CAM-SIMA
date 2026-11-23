@@ -44,6 +44,7 @@ contains
       use cam_constituents,           only: const_is_initialized
       use ccpp_constituent_prop_mod,  only: ccpp_constituent_prop_ptr_t
       use cam_logfile,                only: iulog
+      use simple_sub,                 only: dtime_phys, pcols, pver
 
       ! Dummy arguments
       type(file_desc_t),          intent(inout) :: file
@@ -157,6 +158,21 @@ contains
                   ! Read variable from IC file:
 
                   select case (trim(phys_var_stdnames(name_idx)))
+                     case ('horizontal_dimension')
+                        call &
+                            endrun('Cannot read pcols from file'// &
+                            ', pcols has no horizontal dimension; pcols is a protected variable')
+
+                     case ('vertical_layer_dimension')
+                        call &
+                            endrun('Cannot read pver from file'// &
+                            ', pver has no horizontal dimension; pver is a protected variable')
+
+                     case ('timestep_for_physics')
+                        call &
+                            endrun('Cannot read dtime_phys from file'// &
+                            ', dtime_phys has no horizontal dimension; dtime_phys is a protected variable')
+
                   end select !read variables
                end select !special indices
 

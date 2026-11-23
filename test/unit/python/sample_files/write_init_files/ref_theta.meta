@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = ref_theta
-  type = module
+  type = host
 [ccpp-arg-table]
   name = ref_theta
-  type = module
+  type = host
 [ theta ]
   standard_name = potential_temperature
   units = K

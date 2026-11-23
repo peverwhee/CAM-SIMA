@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = hycoef
-  type = module
+  type = host
 [ccpp-arg-table]
   name = hycoef
-  type = module
+  type = host
 
 [ etamid ]
   standard_name = sum_of_sigma_pressure_hybrid_coordinate_a_coefficient_and_sigma_pressure_hybrid_coordinate_b_coefficient

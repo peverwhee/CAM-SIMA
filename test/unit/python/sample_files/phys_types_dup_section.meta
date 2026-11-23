@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = physics_types_simple
-  type = module
+  type = host
 [ccpp-arg-table]
   name = physics_types_simple
-  type = module
+  type = host
 [ ncol ]
   standard_name = horizontal_dimension
   long_name = Number of horizontal columns
@@ -25,7 +25,7 @@
   protected = True
 [ccpp-arg-table]
   name = physics_types_simple
-  type = module
+  type = host
 [ pver ]
   standard_name = vertical_layer_dimension
   long_name = Number of vertical layers

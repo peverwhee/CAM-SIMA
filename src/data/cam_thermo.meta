@@ -1,9 +1,9 @@
 [ccpp-table-properties]
   name = cam_thermo
-  type = module
+  type = host
 [ccpp-arg-table]
   name  = cam_thermo
-  type  = module
+  type  = host
 [ kmvis ]
   standard_name = molecular_viscosity_wrt_dry_air
   units = kg m-1 s-1

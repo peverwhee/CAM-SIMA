@@ -1,10 +1,10 @@
 [ccpp-table-properties]
   name = cam_control_mod
-  type = module
+  type = host
 
 [ccpp-arg-table]
   name = cam_control_mod
-  type = module
+  type = host
 [ initial_run ]
   standard_name = is_initial_run
   long_name = Flag indicating whether this model simulation is an initial run

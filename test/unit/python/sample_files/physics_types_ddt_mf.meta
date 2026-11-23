@@ -19,10 +19,10 @@
   protected = True
 [ccpp-table-properties]
   name = physics_types_ddt_mf
-  type = module
+  type = host
 [ccpp-arg-table]
   name = physics_types_ddt_mf
-  type = module
+  type = host
 [ longitude ]
   standard_name = longitude
   units = radians
