@@ -25,8 +25,8 @@
         fxDONOTUSEurl = https://gitlab.inria.fr/scotch/scotch.git
 [submodule "ncar-physics"]
         path          = src/physics/ncar_ccpp
-	url           = https://github.com/ESCOMP/atmospheric_physics
-	fxtag         = 15f745dbdb8d54d30b536f61709fd1458edada3a
+	url           = https://github.com/peverwhee/atmospheric_physics
+	fxtag         = 59fa9309189822a513d3df61de1e8552e87eef08
         fxrequired    = AlwaysRequired
         fxDONOTUSEurl = https://github.com/ESCOMP/atmospheric_physics
 [submodule "rrtmgp-data"]

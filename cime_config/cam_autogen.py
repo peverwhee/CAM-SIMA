@@ -370,23 +370,23 @@ def _set_rrtmgp_dependencies(dependency_files, gpu_flag):
     This function returns a modified list with either the
     CPU or GPU RRTMGP dependencies, but not both.
 
-    >>> in_files = ['/some/path/file.F90','/some/rte-kernels/rrtmgp.F90', \
-                    '/some/rte-kernels/accel/rrtmgp.F90', \
-                    '/some/rte-kernels/mo_rte_solver_kernels.F90', \
-                    '/some/rte-kernels/accel/mo_rte_solver_kernels.F90', \
+    >>> in_files = ['/some/path/file.F90','/some/rte/kernels/rrtmgp.F90', \
+                    '/some/rte/kernels/accel/rrtmgp.F90', \
+                    '/some/rte/kernels/mo_rte_solver_kernels.F90', \
+                    '/some/rte/kernels/accel/mo_rte_solver_kernels.F90', \
                     '/some/other/path/file.F90', \
-                    '/other/rrtmgp-kernels/mo_gas_optics_rrtmgp_kernels.F90', \
-                    '/other/rrtmgp-kernels/accel/mo_gas_optics_rrtmgp_kernels.F90', ]
+                    '/other/rrtmgp/kernels/mo_gas_optics_rrtmgp_kernels.F90', \
+                    '/other/rrtmgp/kernels/accel/mo_gas_optics_rrtmgp_kernels.F90', ]
     >>> _set_rrtmgp_dependencies(in_files, False)
-    ['/some/path/file.F90', '/some/rte-kernels/rrtmgp.F90', \
-'/some/rte-kernels/accel/rrtmgp.F90', '/some/rte-kernels/mo_rte_solver_kernels.F90', \
-'/some/other/path/file.F90', '/other/rrtmgp-kernels/mo_gas_optics_rrtmgp_kernels.F90']
+    ['/some/path/file.F90', '/some/rte/kernels/rrtmgp.F90', \
+'/some/rte/kernels/accel/rrtmgp.F90', '/some/rte/kernels/mo_rte_solver_kernels.F90', \
+'/some/other/path/file.F90', '/other/rrtmgp/kernels/mo_gas_optics_rrtmgp_kernels.F90']
 
     >>> _set_rrtmgp_dependencies(in_files, True)
-    ['/some/path/file.F90', '/some/rte-kernels/rrtmgp.F90', \
-'/some/rte-kernels/accel/rrtmgp.F90', \
-'/some/rte-kernels/accel/mo_rte_solver_kernels.F90', '/some/other/path/file.F90', \
-'/other/rrtmgp-kernels/accel/mo_gas_optics_rrtmgp_kernels.F90']
+    ['/some/path/file.F90', '/some/rte/kernels/rrtmgp.F90', \
+'/some/rte/kernels/accel/rrtmgp.F90', \
+'/some/rte/kernels/accel/mo_rte_solver_kernels.F90', '/some/other/path/file.F90', \
+'/other/rrtmgp/kernels/accel/mo_gas_optics_rrtmgp_kernels.F90']
     """
 
     # Create new list of CCPP-dependent files:
@@ -394,7 +394,8 @@ def _set_rrtmgp_dependencies(dependency_files, gpu_flag):
 
     # List of directory strings that indicate
     # RRTMGP dependencies:
-    rrtmgp_subdirs = ['rte-kernels', 'rrtmgp-kernels']
+    rrtmgp_subdirs = [os.path.join('rte', 'kernels'),
+                      os.path.join('rrtmgp', 'kernels')]
 
     # List of RRTMGP files that differ between CPUs and GPUs:
     rrtmgp_files = ['mo_rte_solver_kernels.F90',
